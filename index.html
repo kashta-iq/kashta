@@ -5327,6 +5327,7 @@ function hostLobby() {
       h('a', {class: 'btn wa', target: '_blank', rel: 'noopener', href: waLink(NET.fb ? `تعال نلعب ديل مون بكشتة 🃏\nكود الغرفة: ${NET.code}\n${netLink(NET.code)}` : `تعال نلعب كشتة أونلاين 🃏 افتح الرابط، اضغط "ادخل غرفة" واكتب الرمز ${NET.code.toUpperCase()}: ${GAME_URL}`)}, h('span', {class: 'wa-ic', 'aria-hidden': 'true'}, '💬'), ' ادعو صديق عبر واتساب بالرمز'),
       h('h4', {style: 'margin:0'}, 'اللاعبون في الغرفة'), list,
       h('div', {class: 'fld'}, h('span', {class: 'hint'}, 'لاعبين آليين إضافيين'), seg), info,
+      NET.fb && typeof rsInviteSheet === 'function' ? h('button', {type: 'button', class: 'btn gold', style: 'width:100%', onclick: () => rsInviteSheet(NET.code, 'dealmon')}, '👥 ادعو صديق من أصدقائك') : '',
       h('div', {class: 'btnrow'}, start, h('button', {type: 'button', class: 'btn', onclick: () => { close(); leaveRoom(); }}, 'إلغاء')));
     draw();
     const off = NET.r.onPeers(() => { if (s.isConnected) draw(); else off(); });
@@ -9595,7 +9596,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.6.3';
+const APP_VERSION = '8.6.4';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -13257,6 +13258,7 @@ function netEnter(code, host) {
       h('div', {class: 'btnrow', style: 'justify-content:center'},
         h('button', {type: 'button', class: 'btn', onclick: () => { window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank'); }}, '📲 دز بالواتساب'),
         h('button', {type: 'button', class: 'btn', onclick: () => { try { navigator.clipboard.writeText(msg); toast('انسخ ✅'); } catch (e) { toast(code); } }}, '📋 انسخ')),
+      h('button', {type: 'button', class: 'btn gold', style: 'width:100%;margin-top:6px', onclick: () => rsInviteSheet(code, room.g)}, '👥 ادعو صديق من أصدقائك'),
       h('div', {class: 'netseats'}, ...Array.from({length: n}, (_, i) => { const x = seats[i];
         return h('div', {class: 'netseat' + (x ? ' on' : ''), onclick: () => { if (x && x[0] !== R.uid) rProfile(x[0], x[1].n, x[1].av); }}, x ? h('img', {src: x[1].av, alt: ''}) : h('i', {}, '🤖'), h('span', {}, x ? (x[0] === R.uid ? 'انت' : x[1].n) + (x[0] === room.host ? ' 👑' : '') : 'الجهاز')); })),
       h('p', {class: 'hint', style: 'text-align:center'}, host ? (seats.length < 2 ? 'استنى ربعك يدخلون بالكود…' : `${seats.length} من ${n} داخلين، والباقي يلعبه الجهاز`) : 'استنى المضيف 👑 يبدي اللعبة…'),
@@ -13670,6 +13672,7 @@ async function rsStart() {
   RS.offs.push(FBX.onValue(fbr(`${HUB}/f/${FB.uid}`), s => { RS.fr = s.val() || {}; rsWatchOn(); re(); }));
   RS.offs.push(FBX.onValue(fbr(`${HUB}/rq/${FB.uid}`), s => { const old = Object.keys(RS.rq).length; RS.rq = s.val() || {}; if (Object.keys(RS.rq).length > old && old >= 0 && RS.loaded) { const x = Object.values(RS.rq).sort((a, b) => b.at - a.at)[0]; if (x) notify(`${x.n} يريد يصير صديقك 🤝`, '👥', 'friends'); } re(); }));
   RS.offs.push(FBX.onValue(fbr(`${HUB}/ib/${FB.uid}`), s => { RS.ib = s.val() || {}; re(); }));
+  RS.offs.push(FBX.onChildAdded(fbr(`${HUB}/inv/${FB.uid}`), s => rsInvited(s.key, s.val())));
   setTimeout(() => { RS.loaded = true; }, 3000);
 }
 setTimeout(() => { rsStart(); }, 2500);
@@ -13760,7 +13763,7 @@ function rsFriendsSheet() {
   rsStart();
   modal((s, close) => {
     const draw = () => {
-      if (!s.isConnected) return; s.innerHTML = '';
+      if (s._drawn && !s.isConnected) return; s._drawn = true; s.innerHTML = '';
       const R = Object.entries(RS.rq || {}), F = Object.entries(RS.fr || {}).sort((a, b) => (rsOnline(b[0]) ? 1 : 0) - (rsOnline(a[0]) ? 1 : 0));
       s.append(h('h3', {}, '👥 الأصدقاء'));
       if (R.length) s.append(h('div', {class: 'lbl'}, `طلبات صداقة (${R.length})`), h('div', {class: 'frlist'}, ...R.map(([u, x]) => h('div', {class: 'fr'},
@@ -13819,6 +13822,46 @@ function mgStk(S, a, i) {   // over a seat of the new games (mine above my pictu
   tableSay(mgEl, `.mgseat[data-seat="${a}"] .mgav`, a === S.me ? 0 : a + 1, i);
 }
 window.__mgStk = i => mgStk(MGS, MGS.me, i);
+
+// ---------- 8.6.4 invite a friend to my room (no code): it pops up on his phone ----------
+function rsInviteSheet(code, g) {
+  rsStart();
+  const gname = (GAMES.find(x => x.k === g) || {name: g}).name;
+  modal((s, close) => {
+    const sent = {};
+    const draw = () => {
+      if (s._drawn && !s.isConnected) return; s._drawn = true; s.innerHTML = '';
+      const F = Object.entries(RS.fr || {}).sort((a, b) => (rsOnline(b[0]) ? 1 : 0) - (rsOnline(a[0]) ? 1 : 0));
+      s.append(h('h3', {style: 'text-align:center'}, '👥 ادعو صديق'), h('p', {class: 'hint', style: 'text-align:center'}, `يوصله على تلفونه ويدخل ${gname} بضغطة`),
+        h('div', {class: 'frlist'}, F.length ? F.map(([u, x]) => h('div', {class: 'fr'}, h('span', {class: 'fp'}, h('img', {src: x.av || avatarURL('m', 1), alt: ''}), h('i', {class: rsOnline(u) ? 'on' : ''})),
+          h('div', {}, h('b', {}, x.n), h('small', {}, rsOnline(u) ? '🟢 متصل' : '⚪ مو متصل (توصله من يفتح اللعبة)')),
+          h('button', {type: 'button', class: 'btn ' + (sent[u] ? '' : 'primary'), disabled: !!sent[u], onclick: async () => {
+            sent[u] = 1; draw();
+            try { await FBX.push(fbr(`${HUB}/inv/${u}`), {from: FB.uid, n: PROFILE.name || 'لاعب', av: rcSmallAv(), code, g, gname, at: Date.now()}); toast(`انرسلت الدعوة لـ${x.n} ✅`); } catch (e) { sent[u] = 0; draw(); toast('ما وصلت، جرّب مرة ثانية'); }
+          }}, sent[u] ? '✓ انرسلت' : 'ادعو'))) : h('p', {class: 'hint'}, 'ماكو أصدقاء بعد. اضغط على صورة أي لاعب حقيقي وأضفه، أو دز الكود بالواتساب.')),
+        h('button', {type: 'button', class: 'btn', onclick: () => { RS.redraw = null; close(); }}, 'رجوع'));
+    };
+    RS.redraw = draw; draw();
+  });
+}
+// an invite came: if the room is still open, ask; «انضم» goes straight in
+setInterval(() => { try { if (RS.pend && !inGame()) { const [k, x] = RS.pend; RS.pend = null; rsInvited(k, x); } } catch (e) {} }, 3000);   // an invite I said yes to in the middle of a game: back when the game ends
+async function rsInvited(key, x) {
+  const ref = fbr(`${HUB}/inv/${FB.uid}/${key}`);
+  if (!x || !x.code || Date.now() - (x.at || 0) > 6 * 3600e3) { FBX.remove(ref); return; }
+  let room = null; try { room = (await FBX.get(fbr('rooms/' + x.code))).val(); } catch (e) {}
+  const open = room && (x.g === 'dealmon' ? room.g === 'dealmon' : room.st === 'lobby');
+  if (!open) { FBX.remove(ref); return; }
+  if (NETR && NETR.code === x.code) { FBX.remove(ref); return; }
+  try { SFX.play('chk', .6); } catch (e) {}
+  modal((s, close) => {
+    s.append(h('div', {class: 'rprof'}, h('img', {src: x.av || avatarURL('m', 1), alt: ''}), h('b', {}, x.n), h('small', {}, `يدعوك تلعبون ${x.gname || ''} 🎴`)),
+      h('div', {class: 'btnrow', style: 'justify-content:center'},
+        h('button', {type: 'button', class: 'btn gold', onclick: () => { close(); if (inGame()) { toast('من تخلص لعبتك ترجعلك الدعوة 👍', 2600); RS.pend = [key, x]; return; } FBX.remove(ref); netJoin(x.code); }}, '✅ انضم'),
+        h('button', {type: 'button', class: 'btn', onclick: () => { close(); FBX.remove(ref); }}, 'لا')));
+  }, {dismiss: false});
+}
+window.__inv = (c, g) => rsInviteSheet(c, g);
 
 // ---------- 8.1 أونو و«أونو لا ترحم» ----------
 // one round: the first to empty his hand wins. «اسحب» cards stack (one of the same or a bigger draw on top).
