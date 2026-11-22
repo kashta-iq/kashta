@@ -1996,6 +1996,12 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 .rcsys{align-self:center;font-size:12px;opacity:.7}
 .rcsend{display:flex;gap:6px}.rcsend input{flex:1;padding:9px;border-radius:10px;border:1px solid #e8c47a;background:rgba(0,0,0,.35);color:#fff}
 .mgroot[hidden]{display:none!important}
+/* 8.6.1 many sizes (المافيا 6–12, المحيبس 1–10) in one compact row; the window never runs off the screen */
+.pnsz{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(34px,1fr))!important;gap:5px!important}
+.pnsz .pnc.pns{height:34px!important}.pnsz .pnc.pns b{font-size:16px}
+.mmerge{max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain}
+.rprof{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 10px}.rprof img{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #e8c47a}.rprof b{font-size:21px}
+.rcem2{font-size:34px;line-height:1}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -9568,7 +9574,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.6';
+const APP_VERSION = '8.6.1';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -9974,9 +9980,9 @@ function drawHome() {
   if (fam && g.k === 'khabitha') { modes.className = 'modegrid vars'; modes.append(cupHomeBtn(false)); fam.vars.forEach((x, i) => { if (x.v !== 'k71') modes.append(vb(x, i)); }); }
   else if (fam) { modes.className = 'modegrid vars'; modes.append(cupHomeBtn(false)); fam.vars.forEach((x, i) => modes.append(vb(x, i))); }
   else modes.append(h('button', {type: 'button', class: 'm-normal startb', onclick: () => modesSheet(g, null)}, h('span', {'aria-hidden': 'true'}, '▶'), 'ابدأ اللعب'), cupHomeBtn(true));
-  const lv = levelOf(PROFILE.xp), on = PROFILE.friends.filter(n => !PROFILE.blocked.includes(n) && mateOn(n)).length, un = unread() + dmUnread();
+  const lv = levelOf(PROFILE.xp), on = typeof RS !== 'undefined' && RS ? Object.keys(RS.fr).filter(u => rsOnline(u)).length : 0, un = unread() + dmUnread();
   const topbar = h('div', {class: 'hometop'},
-    h('button', {type: 'button', class: 'frbtn', 'aria-label': 'الأصدقاء', onclick: friendsSheet}, h('span', {class: 'fi'}, svgIcon('friends')), frReqN() ? h('i', {class: 'dot red', 'aria-label': 'طلبات صداقة'}, frReqN()) : on ? h('i', {class: 'dot'}, on) : ''),
+    h('button', {type: 'button', class: 'frbtn', 'aria-label': 'الأصدقاء', onclick: () => rsFriendsSheet()}, h('span', {class: 'fi'}, svgIcon('friends')), rsReqN() ? h('i', {class: 'dot red', 'aria-label': 'طلبات صداقة'}, rsReqN()) : on ? h('i', {class: 'dot'}, on) : ''),
     h('button', {type: 'button', class: 'frbtn', 'aria-label': 'الرسائل والإشعارات', onclick: () => chatSheet()}, h('span', {class: 'fi'}, svgIcon('chat')), un ? h('i', {class: 'dot red'}, un) : ''),
     h('h1', {class: 'logo q-logo'}, h('img', {src: uiImg('q_logo'), alt: 'كشتة'})),
     h('div', {class: 'hcol'}, vipBadge(),
@@ -10137,6 +10143,7 @@ function svgIcon(k) {
   return el.firstChild;
 }
 function friendsSheet() {
+  if (typeof rsFriendsSheet === 'function') return rsFriendsSheet();   // 8.6.1 the real friends
   return modal((s, close) => {
     const inp = h('input', {placeholder: 'ID مال صديقك', 'aria-label': 'ID مال صديقك', inputmode: 'numeric', maxlength: '8'});
     const fr = PROFILE.friends.filter(n => !PROFILE.blocked.includes(n));
@@ -10154,7 +10161,8 @@ function friendsSheet() {
 // ---------- friend requests: they land on the friends icon; accept or refuse there ----------
 if (!Array.isArray(PROFILE.frReq)) PROFILE.frReq = [];
 if (!Array.isArray(PROFILE.frOut)) PROFILE.frOut = [];
-if (!PROFILE.frSeed) { PROFILE.frSeed = 1; PROFILE.frReq.push({n: 'كرار الساعدي', at: Date.now()}, {n: 'نور الهدى', at: Date.now()}); }   // mock until the server
+if (!PROFILE.frSeed) PROFILE.frSeed = 1;
+if (!PROFILE.realFr) { PROFILE.realFr = 1; PROFILE.friends = []; PROFILE.frReq = []; PROFILE.frOut = []; PROFILE.dm = null; saveProfile(); }   // 8.6.1 only real friends (the device's ones are gone)
 const frReqN = () => PROFILE.frReq.filter(r => !PROFILE.blocked.includes(r.n) && !PROFILE.friends.includes(r.n)).length;
 function frSend(n) {   // mock: the other player accepts after a little while
   if (!PROFILE.frOut.includes(n)) PROFILE.frOut.push(n); saveProfile(); toast('انرسل طلب الصداقة ✅ ينتظر موافقته');
@@ -10244,7 +10252,7 @@ function loadDm(n) {
   return seed[n] ? [{n, t: seed[n], at: Date.now() - (n.length * 37e5)}] : [];
 }
 function saveDm(n, a) { try { localStorage.setItem(DM_KEY(n), JSON.stringify(a.slice(-80))); } catch (e) {} }
-const dmUnread = () => PROFILE.friends.filter(n => !PROFILE.blocked.includes(n)).reduce((k, n) => { const a = loadDm(n), last = a.at(-1); return k + (last && !last.me && !(PROFILE.dmSeen || {})[n] ? 1 : 0); }, 0);
+const dmUnread = () => typeof rsUnread === 'function' ? rsUnread() : 0;   // 8.6.1 real messages only
 const hhmm = at => { const d = new Date(at); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 // a notification about a prize takes you to where it is collected / used
 function noteGo(x) {
@@ -10272,6 +10280,8 @@ function chatSheet(tab = 'msg') {
       if (tab === 'notes') {
         PROFILE.seenNotes = PROFILE.notes.length; saveProfile();
         s.append(h('div', {class: 'notes'}, PROFILE.notes.length ? PROFILE.notes.map(x => { const go = noteGo(x); return h('div', {class: 'note1' + (go ? ' go' : ''), ...(go ? {role: 'button', tabindex: 0, onclick: () => { close(); go(); }} : {})}, h('span', {class: 'ic'}, x.ic), h('div', {}, h('span', {}, x.t), h('small', {}, new Date(x.at).toLocaleDateString('ar-IQ') + ' ' + hhmm(x.at))), go ? h('span', {class: 'ngo'}, '‹') : ''); }) : h('p', {class: 'hint'}, 'ماكو إشعارات.')));
+      } else if (typeof rsConvs === 'function') {
+        s.append(h('div', {class: 'chatbar'}, h('button', {type: 'button', class: 'btn', style: 'width:100%', onclick: () => { close(); rsFriendsSheet(); }}, '👥 أصدقائي (ابدي محادثة)')), rsConvs(close));
       } else {
         const fr = PROFILE.friends.filter(n => !PROFILE.blocked.includes(n));
         const search = h('input', {placeholder: '🔍 دوّر على صديق', 'aria-label': 'دوّر على صديق', value: q, oninput: e => { q = e.target.value; list(); }});
@@ -11286,7 +11296,7 @@ let CLUB_TIMER = null;
 function drawClubs() {
   const pg = $('#pg-clubs'); pg.innerHTML = ''; pg.classList.remove('clubroom');
   const my = CLUBS.find(c => c.n === PROFILE.club);
-  if (typeof rcPanel === 'function' && PROFILE.rclub && !CLUB_BROWSE) { pg.append(h('div', {class: 'phead'}, h('h2', {}, 'ناديك')), rcPanel()); return; }   // 8.5 the real club first
+  if (typeof rcRoom === 'function' && PROFILE.rclub && !CLUB_BROWSE) return rcRoom(pg);   // 8.5 the real club first
   if (my && !CLUB_BROWSE) return drawClubRoom(pg, my);
   pg.append(h('div', {class: 'phead'}, my ? h('button', {type: 'button', class: 'btn ghost', onclick: () => { CLUB_BROWSE = false; drawClubs(); }}, '→ ناديك') : null, h('h2', {}, 'الأندية'), h('button', {type: 'button', class: 'btn primary', onclick: createClubSheet}, '➕ أنشئ نادي')));
   if (!PROFILE.clubBonus) pg.append(h('div', {class: 'clubbonus'}, '🎁 انضم لأول نادي إلك وتحصل ', coinImg(), ' 200 كشتات (مرة وحدة بس)'));
@@ -13215,7 +13225,7 @@ function netEnter(code, host) {
         h('button', {type: 'button', class: 'btn', onclick: () => { window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank'); }}, '📲 دز بالواتساب'),
         h('button', {type: 'button', class: 'btn', onclick: () => { try { navigator.clipboard.writeText(msg); toast('انسخ ✅'); } catch (e) { toast(code); } }}, '📋 انسخ')),
       h('div', {class: 'netseats'}, ...Array.from({length: n}, (_, i) => { const x = seats[i];
-        return h('div', {class: 'netseat' + (x ? ' on' : '')}, x ? h('img', {src: x[1].av, alt: ''}) : h('i', {}, '🤖'), h('span', {}, x ? (x[0] === R.uid ? 'انت' : x[1].n) + (x[0] === room.host ? ' 👑' : '') : 'الجهاز')); })),
+        return h('div', {class: 'netseat' + (x ? ' on' : ''), onclick: () => { if (x && x[0] !== R.uid) rProfile(x[0], x[1].n, x[1].av); }}, x ? h('img', {src: x[1].av, alt: ''}) : h('i', {}, '🤖'), h('span', {}, x ? (x[0] === R.uid ? 'انت' : x[1].n) + (x[0] === room.host ? ' 👑' : '') : 'الجهاز')); })),
       h('p', {class: 'hint', style: 'text-align:center'}, host ? (seats.length < 2 ? 'استنى ربعك يدخلون بالكود…' : `${seats.length} من ${n} داخلين، والباقي يلعبه الجهاز`) : 'استنى المضيف 👑 يبدي اللعبة…'),
       h('div', {class: 'btnrow', style: 'justify-content:center'},
         host ? h('button', {type: 'button', class: 'btn primary', disabled: seats.length < 2, onclick: () => netStart()}, 'ابدأ اللعبة') : '',
@@ -13480,13 +13490,15 @@ async function rcWatch() {
     const v = s.val();
     if (!v || v.g !== 'club' || !(v.members || {})[FB.uid]) { if (RC.code === code) { rcStop(); PROFILE.rclub = null; saveProfile(); toast('النادي انحذف أو انطلعت منه'); } }
     else RC.data = v;
-    if (RC.page && RC.page.isConnected) { const ae = document.activeElement, keep = ae && ae.closest && ae.closest('.rcsend') ? ae.value : null; drawClubs(); if (keep != null) { const i = document.querySelector('.rcsend input'); if (i) { i.value = keep; i.focus(); } } }
+    if (RC.upd && RC.upd.isConnected && RC.upd._u) RC.upd._u();   // the club room is open: only its parts change (what you type stays)
+    else if (RC.page && RC.page.isConnected) drawClubs();
+    try { if (v && v.members) Object.entries(v.members).forEach(([u, m]) => { if (u !== FB.uid) rfrAdd(u, m.n, m.av, 'club'); }); } catch (e) {}
   }));
 }
 setTimeout(() => { if (PROFILE.rclub) rcWatch(); }, 3000);
 // club points: every game counts (a win 40, a loss 15) for me and for the club
 function rcScore(won) { const code = PROFILE.rclub; if (!code || !FB) return; try { FBX.runTransaction(fbr(`rooms/${code}/members/${FB.uid}/xp`), x => (x || 0) + (won ? 40 : 15)); } catch (e) {} }
-function rcSend(m) { m = String(m || '').trim().slice(0, 200); if (!m || !RC.code || !FB) return; FBX.push(fbr(`rooms/${RC.code}/chat`), {u: FB.uid, n: PROFILE.name || 'لاعب', m, t: Date.now()}); }
+function rcSend(m, stk) { m = String(m || '').trim().slice(0, 200); if ((!m && stk == null) || !RC.code || !FB) return; FBX.push(fbr(`rooms/${RC.code}/chat`), Object.assign({u: FB.uid, n: PROFILE.name || 'لاعب', m: m || '', t: Date.now()}, stk != null ? {s: stk} : {})); }
 // the clubs page: my real club on top (or the way to make / join one)
 function rcPanel() {
   const box = h('div', {class: 'rcbox'});
@@ -13532,6 +13544,207 @@ function rcJoinSheet() {
 setTimeout(() => { try { const c = new URLSearchParams(location.search).get('club'); if (c) { history.replaceState(null, '', location.pathname); rcJoin(c); } } catch (e) {} }, 2600);
 window.__rc = {create: (n, e) => rcCreate(n, e || '🦁'), join: c => rcJoin(c), send: m => rcSend(m), data: () => RC.data, code: () => PROFILE.rclub, score: w => rcScore(w)};
 window.__dmo = () => ({mode: NET.mode, code: NET.code, fb: !!NET.fb, seat: NET.seat, g: !!G, cur: G && G.cur, app: !document.getElementById('app').hidden, peers: NET.r ? NET.r.peers().length : 0, hands: G ? G.players.map(p => p.hand.length).join(',') : ''});
+
+// the real club in the club room's look (the header, the chat with stickers, the writing bar), its people and settings behind ⚙️
+function rcRoom(pg) {
+  rcWatch();
+  pg.classList.add('clubroom');
+  const d0 = RC.data;
+  if (!d0) { pg.append(h('p', {class: 'hint', style: 'text-align:center;margin-top:40px'}, '⏳ جاري تحميل ناديك…')); RC.page = pg; return; }
+  const feed = h('div', {class: 'feed', role: 'log', 'aria-live': 'polite'});
+  const tm = at => { const x = new Date(at); return x.getHours().toString().padStart(2, '0') + ':' + x.getMinutes().toString().padStart(2, '0'); };
+  const avOf = u => { const m = ((RC.data || {}).members || {})[u]; return m && m.av || avatarURL('m', 1); };
+  const msgEl = m => {
+    if (m.u === 'sys') return h('div', {class: 'sysmsg'}, m.m);
+    const me = m.u === FB.uid;
+    const body = m.s != null && STICKERS[m.s] ? (() => { const el = stickerEl(m.s); el.addEventListener('click', () => { try { SFX.play('stk' + m.s, .9); } catch (e) {} }); return h('div', {class: 'stkmsg'}, el); })() : h('div', {class: 'txt'}, m.m);
+    return h('div', {class: 'msg' + (me ? ' me' : '')}, me ? null : h('img', {class: 'av', src: avOf(m.u), alt: '', role: 'button', style: 'cursor:pointer', onclick: () => rProfile(m.u, m.n, avOf(m.u))}), h('div', {class: 'bb'}, me ? null : h('b', {onclick: () => rProfile(m.u, m.n, avOf(m.u))}, m.n), body, h('small', {}, tm(m.t))));
+  };
+  let shown = 0;
+  const drawFeed = () => {
+    const chat = Object.values((RC.data || {}).chat || {}).sort((a, b) => a.t - b.t).slice(-80);
+    if (chat.length < shown || shown === 0) { feed.innerHTML = ''; chat.forEach(m => feed.append(msgEl(m))); }
+    else chat.slice(shown).forEach(m => { feed.append(msgEl(m)); if (m.u !== FB.uid) { try { m.s != null ? SFX.play('stk' + m.s, .8) : SFX.play('chk', .3); } catch (e) {} } });
+    shown = chat.length; requestAnimationFrame(() => { feed.scrollTop = feed.scrollHeight; });
+  };
+  const inp = h('input', {placeholder: 'اكتب رسالة…', 'aria-label': 'رسالة للنادي', maxlength: '200'});
+  const send = () => { const t = inp.value.trim(); if (!t) return; inp.value = ''; rcSend(t); };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  const tray = h('div', {class: 'tray', hidden: true});
+  const stkBtn = h('button', {type: 'button', class: 'cbtn', 'aria-label': 'ملصقات', onclick: () => {
+    if (tray.hidden) { tray.innerHTML = ''; tray.append(h('div', {class: 'stkgrid'}, STK_ORDER.map(i => [STICKERS[i], i]).map(([st, i]) => hasStk(i) ? h('button', {type: 'button', 'aria-label': st.t, onclick: () => { tray.hidden = true; rcSend('', i); try { SFX.play('stk' + i, .8); } catch (e) {} }}, stickerEl(i, true)) : null))); }
+    tray.hidden = !tray.hidden; }}, '😀');
+  const ci = h('div', {class: 'ci'}), em = h('span', {class: 'clubem rcem2'});
+  const drawHead = () => { const d = RC.data || d0, M = Object.values(d.members || {}), xp = M.reduce((a, m) => a + (m.xp || 0), 0), lv = clubLvOf(xp), on = M.filter(m => m.on).length;
+    em.textContent = d.em || '🛡️'; ci.innerHTML = ''; ci.append(h('b', {}, d.name), h('small', {}, `مستوى ${lv.L} · 👥 ${M.length} · 🟢 ${on} · الكود `, h('bdi', {dir: 'ltr', class: 'rccode'}, PROFILE.rclub))); };
+  const head = h('div', {class: 'clubhead'}, em, ci,
+    h('button', {type: 'button', class: 'cbtn', 'aria-label': 'الأعضاء', onclick: () => rcMembers()}, '👥'),
+    h('button', {type: 'button', class: 'cbtn', 'aria-label': 'أندية ثانية', onclick: () => { CLUB_BROWSE = true; drawClubs(); }}, '🔍'),
+    h('button', {type: 'button', class: 'cbtn', 'aria-label': 'إعدادات النادي', onclick: () => rcSettings()}, '⚙️'));
+  const bar = h('div', {class: 'composer'}, stkBtn, inp, h('button', {type: 'button', class: 'cbtn send', 'aria-label': 'إرسال', onclick: send}, '➤'));
+  pg.append(head, feed, tray, bar);
+  pg._u = () => { drawHead(); drawFeed(); };
+  RC.upd = pg; RC.page = pg;
+  pg._u();
+}
+function rcMembers() {
+  const d = RC.data; if (!d) return;
+  modal((s, close) => {
+    const M = Object.entries(d.members || {}).sort((a, b) => (b[1].xp || 0) - (a[1].xp || 0));
+    s.append(h('h3', {style: 'text-align:center'}, `👥 أعضاء ${d.name}`),
+      h('div', {class: 'frlist'}, ...M.map(([u, m], k) => h('div', {class: 'fr'}, h('button', {type: 'button', class: 'fp', 'aria-label': 'بروفايل ' + m.n, onclick: () => rProfile(u, m.n, m.av)}, h('img', {src: m.av || avatarURL('m', 1), alt: ''}), h('i', {class: m.on ? 'on' : ''})),
+        h('div', {}, h('b', {}, (u === FB.uid ? 'انت' : m.n) + (u === d.owner ? ' 👑' : '')), h('small', {}, `${['🥇', '🥈', '🥉'][k] || '#' + (k + 1)} ${m.xp || 0} نقطة · ${m.on ? '🟢 متصل' : '⚪ مو متصل'}`)),
+        u !== FB.uid ? h('button', {type: 'button', class: 'btn', onclick: () => { close(); rdmThread(u, m.n, m.av); }}, '💬') : ''))),
+      h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع'));
+  });
+}
+function rcSettings() {
+  const d = RC.data; if (!d) return;
+  const msg = `تعال انضم لنادي ${d.name} بكشتة 🎴\nكود النادي: ${PROFILE.rclub}\n${netLink(PROFILE.rclub).replace('?room=', '?club=')}`;
+  modal((s, close) => {
+    s.append(h('h3', {style: 'text-align:center'}, `${d.em || '🛡️'} ${d.name}`),
+      h('div', {class: 'netcode'}, h('small', {}, 'كود النادي'), h('b', {}, PROFILE.rclub)),
+      h('div', {class: 'btnrow', style: 'justify-content:center'},
+        h('button', {type: 'button', class: 'btn', onclick: () => window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank')}, '📲 ادعو بالواتساب'),
+        h('button', {type: 'button', class: 'btn', onclick: () => { try { navigator.clipboard.writeText(msg); toast('انسخ ✅'); } catch (e) { toast(PROFILE.rclub); } }}, '📋 انسخ')),
+      h('p', {class: 'hint', style: 'text-align:center'}, 'كل لعبة يلعبها عضو تضيف للنادي: الفوز 40 نقطة والخسارة 15.'),
+      h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn danger', onclick: () => { close(); rcLeave(); }}, '🚪 اطلع من النادي'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع')));
+  });
+}
+// ---------- 8.6.1 real friends: a real profile, friend requests, the friends list and private messages ----------
+// they live in rooms/0000 (the hub): u/<uid> who is who (and online), rq/<to>/<from> requests, f/<uid>/<friend> friends,
+// dm/<a_b>/<push> the messages, ib/<to>/<from> the last message of each talk (for the list and the red dot)
+var RS = {on: false, me: null, fr: {}, rq: {}, ib: {}, users: {}, offs: []};
+var HUB = 'rooms/0000';
+const rsPair = (a, b) => a < b ? a + '_' + b : b + '_' + a;
+async function rsStart() {
+  if (RS.on) return; try { await netInit(); } catch (e) { return; }
+  RS.on = true; RS.me = FB.uid;
+  const meRef = fbr(`${HUB}/u/${FB.uid}`), onRef = fbr(`${HUB}/u/${FB.uid}/on`);
+  FBX.update(meRef, {n: PROFILE.name || 'لاعب', av: rcSmallAv(), club: PROFILE.rclub || null, id: PROFILE.id || null});
+  RS.offs.push(FBX.onValue(fbr('.info/connected'), s => { if (s.val() === true) { FBX.onDisconnect(onRef).set(false); FBX.set(onRef, true); } }));
+  const re = () => { try { if (TAB === 'home') drawHome(); } catch (e) {} if (RS.redraw) try { RS.redraw(); } catch (e) {} };
+  RS.offs.push(FBX.onValue(fbr(`${HUB}/f/${FB.uid}`), s => { RS.fr = s.val() || {}; rsWatchOn(); re(); }));
+  RS.offs.push(FBX.onValue(fbr(`${HUB}/rq/${FB.uid}`), s => { const old = Object.keys(RS.rq).length; RS.rq = s.val() || {}; if (Object.keys(RS.rq).length > old && old >= 0 && RS.loaded) { const x = Object.values(RS.rq).sort((a, b) => b.at - a.at)[0]; if (x) notify(`${x.n} يريد يصير صديقك 🤝`, '👥', 'friends'); } re(); }));
+  RS.offs.push(FBX.onValue(fbr(`${HUB}/ib/${FB.uid}`), s => { RS.ib = s.val() || {}; re(); }));
+  setTimeout(() => { RS.loaded = true; }, 3000);
+}
+setTimeout(() => { rsStart(); }, 2500);
+// the friends' online state (a dot on their pictures)
+function rsWatchOn() {
+  Object.keys(RS.fr).forEach(u => { if (RS.users[u] !== undefined) return; RS.users[u] = null;
+    RS.offs.push(FBX.onValue(fbr(`${HUB}/u/${u}`), s => { RS.users[u] = s.val() || {}; if (RS.redraw) try { RS.redraw(); } catch (e) {} })); });
+}
+function rsOnline(u) { return !!(RS && RS.users[u] && RS.users[u].on); }
+function rsUnread() { return RS ? Object.values(RS.ib || {}).filter(x => x && x.from !== RS.me && !x.seen).length : 0; }
+function rsReqN() { return RS ? Object.keys(RS.rq || {}).length : 0; }
+const rsIsFr = u => !!RS.fr[u];
+const rfrAdd = () => {};   // friends are only the ones you add (no one is added by himself)
+async function rsRequest(u, n, av) {
+  await rsStart(); if (!FB || u === FB.uid) return;
+  if (RS.rq[u]) return rsAccept(u);   // he asked me first: we are friends now
+  await FBX.set(fbr(`${HUB}/rq/${u}/${FB.uid}`), {n: PROFILE.name || 'لاعب', av: rcSmallAv(), at: Date.now()});
+  PROFILE.rqOut = Object.assign(PROFILE.rqOut || {}, {[u]: Date.now()}); saveProfile();
+  toast('انرسل طلب الصداقة ✅');
+}
+async function rsAccept(u) {
+  const x = RS.rq[u] || {}; const me = {n: PROFILE.name || 'لاعب', av: rcSmallAv(), at: Date.now()};
+  await FBX.set(fbr(`${HUB}/f/${FB.uid}/${u}`), {n: x.n || 'صديق', av: x.av || '', at: Date.now()});
+  await FBX.set(fbr(`${HUB}/f/${u}/${FB.uid}`), me);
+  await FBX.remove(fbr(`${HUB}/rq/${FB.uid}/${u}`)); try { await FBX.remove(fbr(`${HUB}/rq/${u}/${FB.uid}`)); } catch (e) {}
+  toast(`صار ${x.n || 'صديقك'} من أصدقائك 🤝`);
+}
+async function rsRefuse(u) { await FBX.remove(fbr(`${HUB}/rq/${FB.uid}/${u}`)); }
+async function rsUnfriend(u) { await FBX.remove(fbr(`${HUB}/f/${FB.uid}/${u}`)); try { await FBX.remove(fbr(`${HUB}/f/${u}/${FB.uid}`)); } catch (e) {} toast('شلته من أصدقائك'); }
+// a real player's profile: the picture, the name, online or not, his club; add him / message him
+async function rProfile(u, n, av) {
+  if (!u) return;
+  if (u === (FB && FB.uid)) return toast('هذا انت 🙂');
+  rsStart();
+  modal((s, close) => {
+    let info = {n, av};
+    const draw = () => {
+      s.innerHTML = '';
+      const fr = rsIsFr(u), sent = PROFILE.rqOut && PROFILE.rqOut[u] && !fr, asked = !!RS.rq[u];
+      s.append(h('div', {class: 'rprof'}, h('img', {src: info.av || av || avatarURL('m', 1), alt: ''}), h('b', {}, info.n || n), h('small', {}, (info.on ? '🟢 متصل' : '⚪ مو متصل') + (info.club ? ` · نادي ${info.club}` : ''))),
+        h('div', {class: 'btnrow', style: 'justify-content:center'},
+          fr ? h('button', {type: 'button', class: 'btn', onclick: async () => { if (!await confirmBox('تشيله من أصدقائك؟', '', 'إي')) return; await rsUnfriend(u); draw(); }}, '✓ صديقك')
+            : asked ? h('button', {type: 'button', class: 'btn gold', onclick: async () => { await rsAccept(u); draw(); }}, '🤝 اقبل طلبه')
+            : sent ? h('button', {type: 'button', class: 'btn', disabled: true}, '⏳ انرسل الطلب')
+            : h('button', {type: 'button', class: 'btn gold', onclick: async () => { await rsRequest(u, info.n || n, info.av || av); draw(); }}, '➕ أضف صديق'),
+          h('button', {type: 'button', class: 'btn primary', onclick: () => { close(); rdmThread(u, info.n || n, info.av || av); }}, '💬 راسله')),
+        h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع'));
+    };
+    draw();
+    FBX.get(fbr(`${HUB}/u/${u}`)).then(x => { const v = x.val(); if (v) { info = Object.assign(info, v, {club: null}); if (v.club) FBX.get(fbr(`rooms/${v.club}/name`)).then(c => { info.club = c.val(); if (s.isConnected) draw(); }); if (s.isConnected) draw(); } }).catch(() => {});
+  });
+}
+// a private talk with a real player
+function rdmThread(u, n, av) {
+  rsStart();
+  const pair = rsPair(FB.uid, u), seen = () => { if (RS.ib[u]) FBX.update(fbr(`${HUB}/ib/${FB.uid}/${u}`), {seen: true}); };
+  modal((s, close) => {
+    s.classList.add('dmthread');
+    const feed = h('div', {class: 'feed', role: 'log'});
+    const msgEl = m => h('div', {class: 'msg' + (m.u === FB.uid ? ' me' : '')}, m.u === FB.uid ? null : h('img', {class: 'av', src: av || avatarURL('m', 1), alt: ''}),
+      h('div', {class: 'bb'}, m.s != null && STICKERS[m.s] ? h('div', {class: 'stkmsg'}, stickerEl(m.s)) : h('div', {class: 'txt'}, m.t), h('small', {}, hhmm(m.at))));
+    let n0 = 0;
+    const off = FBX.onValue(FBX.query(fbr(`${HUB}/dm/${pair}`), FBX.limitToLast(80)), snap => {
+      if (!s.isConnected) return off();
+      const L = Object.values(snap.val() || {}).sort((a, b) => a.at - b.at);
+      feed.innerHTML = ''; L.forEach(m => feed.append(msgEl(m)));
+      if (L.length > n0 && n0 && L.at(-1).u !== FB.uid) { try { L.at(-1).s != null ? SFX.play('stk' + L.at(-1).s, .8) : SFX.play('chk', .3); } catch (e) {} }
+      n0 = L.length; seen(); requestAnimationFrame(() => { feed.scrollTop = feed.scrollHeight; });
+    });
+    const put = async (m, last) => {
+      const at = Date.now();
+      await FBX.push(fbr(`${HUB}/dm/${pair}`), Object.assign({u: FB.uid, at}, m));
+      FBX.set(fbr(`${HUB}/ib/${u}/${FB.uid}`), {n: PROFILE.name || 'لاعب', av: rcSmallAv(), last, at, from: FB.uid, seen: false});
+      FBX.set(fbr(`${HUB}/ib/${FB.uid}/${u}`), {n, av: av || '', last, at, from: FB.uid, seen: true});
+    };
+    const inp = h('input', {placeholder: 'اكتب رسالة…', 'aria-label': 'رسالة', maxlength: '300'});
+    const send = () => { const t = inp.value.trim(); if (!t) return; inp.value = ''; put({t}, t); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+    const tray = h('div', {class: 'tray', hidden: true});
+    const stk = h('button', {type: 'button', class: 'cbtn', 'aria-label': 'ملصقات', onclick: () => { if (tray.hidden) { tray.innerHTML = ''; tray.append(h('div', {class: 'stkgrid'}, STK_ORDER.map(i => [STICKERS[i], i]).map(([st, i]) => hasStk(i) ? h('button', {type: 'button', 'aria-label': st.t, onclick: () => { tray.hidden = true; put({s: i}, 'ملصق 😀'); try { SFX.play('stk' + i, .8); } catch (e) {} }}, stickerEl(i, true)) : null))); } tray.hidden = !tray.hidden; }}, '😀');
+    s.append(h('div', {class: 'dmhead'}, h('button', {type: 'button', class: 'cbtn', 'aria-label': 'رجوع', onclick: () => { off(); close(); }}, '→'),
+      h('button', {type: 'button', class: 'who', onclick: () => rProfile(u, n, av)}, h('img', {src: av || avatarURL('m', 1), alt: ''}), h('b', {}, n), h('small', {}, rsOnline(u) ? '🟢 متصل' : ''))),
+      feed, tray, h('div', {class: 'composer'}, stk, inp, h('button', {type: 'button', class: 'cbtn send', 'aria-label': 'إرسال', onclick: send}, '➤')));
+  });
+}
+// the friends window: requests on top, then the friends (online first)
+function rsFriendsSheet() {
+  rsStart();
+  modal((s, close) => {
+    const draw = () => {
+      if (!s.isConnected) return; s.innerHTML = '';
+      const R = Object.entries(RS.rq || {}), F = Object.entries(RS.fr || {}).sort((a, b) => (rsOnline(b[0]) ? 1 : 0) - (rsOnline(a[0]) ? 1 : 0));
+      s.append(h('h3', {}, '👥 الأصدقاء'));
+      if (R.length) s.append(h('div', {class: 'lbl'}, `طلبات صداقة (${R.length})`), h('div', {class: 'frlist'}, ...R.map(([u, x]) => h('div', {class: 'fr'},
+        h('button', {type: 'button', class: 'fp', onclick: () => rProfile(u, x.n, x.av)}, h('img', {src: x.av || avatarURL('m', 1), alt: ''})), h('div', {}, h('b', {}, x.n), h('small', {}, 'يريد يصير صديقك')),
+        h('button', {type: 'button', class: 'btn gold', onclick: () => rsAccept(u)}, 'اقبل'), h('button', {type: 'button', class: 'btn', onclick: () => rsRefuse(u)}, 'رفض')))));
+      s.append(h('div', {class: 'frlist'}, F.length ? F.map(([u, x]) => h('div', {class: 'fr'},
+        h('button', {type: 'button', class: 'fp', 'aria-label': 'بروفايل ' + x.n, onclick: () => rProfile(u, x.n, x.av)}, h('img', {src: x.av || avatarURL('m', 1), alt: ''}), h('i', {class: rsOnline(u) ? 'on' : ''})),
+        h('div', {}, h('b', {}, x.n), h('small', {}, rsOnline(u) ? '🟢 متصل' : '⚪ مو متصل')),
+        h('button', {type: 'button', class: 'btn', onclick: () => { close(); rdmThread(u, x.n, x.av); }}, '💬'))) : h('p', {class: 'hint'}, 'ماكو أصدقاء بعد. اضغط على صورة أي لاعب حقيقي (بالنادي أو بغرفة اللعب) وأضفه.')),
+        h('button', {type: 'button', class: 'btn', onclick: () => { RS.redraw = null; close(); }}, 'رجوع'));
+    };
+    RS.redraw = draw; draw();
+  });
+}
+// the messages list (inside the messages & notifications window)
+function rsConvs(close) {
+  const box = h('div', {class: 'convs'});
+  const L = Object.entries(RS.ib || {}).sort((a, b) => b[1].at - a[1].at);
+  if (!RS.on) box.append(h('p', {class: 'hint'}, '⏳ جاري الاتصال…'));
+  else if (!L.length) box.append(h('p', {class: 'hint'}, 'ماكو رسائل بعد. راسل صديق من قائمة أصدقائك 👥 أو من بروفايل أي لاعب حقيقي.'));
+  L.forEach(([u, x]) => box.append(h('button', {type: 'button', class: 'conv' + (x.from !== RS.me && !x.seen ? ' new' : ''), onclick: () => { close(); rdmThread(u, x.n, x.av); }},
+    h('span', {class: 'fp'}, h('img', {src: x.av || avatarURL('m', 1), alt: ''}), h('i', {class: rsOnline(u) ? 'on' : ''})),
+    h('div', {}, h('b', {}, x.n), h('small', {}, (x.from === RS.me ? 'انت: ' : '') + (x.last || ''))), h('em', {}, hhmm(x.at)))));
+  return box;
+}
+window.__rs = {S: () => ({on: RS.on, fr: Object.keys(RS.fr).length, rq: Object.keys(RS.rq).length, ib: Object.values(RS.ib).map(x => x.n + ':' + x.last + ':' + x.seen), un: rsUnread()}), uid: () => FB && FB.uid, req: (u, n) => rsRequest(u, n, ''), acc: u => rsAccept(u), prof: (u, n) => rProfile(u, n, ''), dm: (u, n) => rdmThread(u, n, '')};
+window.__ms = k => modesSheet(GAMES.find(g => g.k === k), null);
 
 // ---------- 8.1 أونو و«أونو لا ترحم» ----------
 // one round: the first to empty his hand wins. «اسحب» cards stack (one of the same or a bigger draw on top).
