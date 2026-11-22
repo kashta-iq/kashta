@@ -9600,7 +9600,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.6.6';
+const APP_VERSION = '8.6.7';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -11726,6 +11726,7 @@ function onGameEnd(w) {
 let LAST_CH = null;
 function awardResult(r) {
   if (r && r.mode !== 'tutorial' && typeof rcScore === 'function') rcScore(!!r.won);   // 8.5 points for my real club
+  if (r && typeof rlgResult === 'function') try { rlgResult(!!r.won); } catch (e) {}   // 8.6.7 a league match: its result goes up the tree
   if (WATCH) {   // a watched table ended: nothing is counted for me, back to the tables
     LAST_REWARD = null; LAST_CH = null; CUP_LAST = null; MATCH_DONE = true;
     setTimeout(() => { toast('👁️ خلصت المباراة', 1800); watchStop(true); setTimeout(() => cupBracket(), 300); }, 2200);
@@ -13296,6 +13297,7 @@ function netEnter(code, host) {
     if (!hostOn && room.host !== R.uid) { if (!R.hostT) R.hostT = setTimeout(() => { if (NETR === R && R.room && !(R.room.seats[R.room.host] || {}).on) { R.closeLobby(); netGone('المضيف طلع، انتهت الغرفة'); } }, 10000); }   // a short blip is forgiven
     else if (R.hostT) { clearTimeout(R.hostT); R.hostT = null; }
     if (room.st === 'play' && room.gid && room.gid !== R.gid) { R.gid = room.gid; R.closeLobby(); netLaunch(R); return; }
+    if (room.st === 'lobby' && room.lg && R.host && !R.lgGo) { const H = (room.lg.order || []).filter(u => u && !u.startsWith('bot:')); if (H.every(u => room.seats && room.seats[u] && room.seats[u].on !== false)) { R.lgGo = true; setTimeout(() => netStart(), 1200); } }
     if (room.st === 'lobby') { if (!lob) { if (NET_CUR) netLeaveGame(); modal((s, close) => { lob = s; lobClose = close; s.classList.add('netlobby'); }, {dismiss: false}); } drawLobby(); }
     if (NET_CUR && NET_CUR.N.R === R) NET_CUR.N.seats(room.seats || {});
   }));
@@ -13310,7 +13312,8 @@ function netQuit(silent) {
 }
 async function netStart() {
   const R = NETR; if (!R || !R.host || !R.room) return;
-  const room = R.room, order = Object.entries(room.seats || {}).filter(([, v]) => v && v.on !== false).sort((a, b) => (a[0] === room.host ? -1 : b[0] === room.host ? 1 : a[1].j - b[1].j)).map(x => x[0]);
+  const room = R.room; let order = Object.entries(room.seats || {}).filter(([, v]) => v && v.on !== false).sort((a, b) => (a[0] === room.host ? -1 : b[0] === room.host ? 1 : a[1].j - b[1].j)).map(x => x[0]);
+  if (room.lg && room.lg.order) { const inn = new Set(order); order = room.lg.order.map((u, i) => inn.has(u) ? u : 'bot:' + i); }   // a league match: each one at his own seat (the device takes the empty ones)
   if (order.length < 2) return toast('لازم واحد من ربعك يدخل');
   await FBX.remove(fbr(`rooms/${R.code}/log`)); await FBX.remove(fbr(`rooms/${R.code}/in`));
   await FBX.update(fbr('rooms/' + R.code), {st: 'play', order, seed: Math.floor(Math.random() * 2 ** 31), gid: Date.now() + '-' + Math.floor(Math.random() * 1e6), ts: Date.now()});
@@ -13856,6 +13859,13 @@ function rsInviteSheet(code, g) {
 setInterval(() => { try { if (RS.pend && !inGame()) { const [k, x] = RS.pend; RS.pend = null; rsInvited(k, x); } } catch (e) {} }, 3000);   // an invite I said yes to in the middle of a game: back when the game ends
 async function rsInvited(key, x) {
   const ref = fbr(`${HUB}/inv/${FB.uid}/${key}`);
+  if (x && x.lg) {   // a league opened in my club: a note, and the league window when I tap it
+    FBX.remove(ref); if (Date.now() - (x.at || 0) > 3 * 3600e3 || x.lg !== PROFILE.rclub) return;
+    notify(`🏆 ${x.n} فتح ${x.gname} بالنادي: سجّل من النادي ⚙️ ← 🏆`, '🏆', 'clubs');
+    if (!inGame()) modal((s, close) => s.append(h('div', {class: 'rprof'}, h('b', {}, `🏆 ${x.gname}`), h('small', {}, `${x.n} فتح دوري بالنادي، التسجيل مفتوح`)),
+      h('div', {class: 'btnrow', style: 'justify-content:center'}, h('button', {type: 'button', class: 'btn gold', onclick: () => { close(); rcLeague(); }}, '🏆 شوف الدوري'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'بعدين'))));
+    return;
+  }
   if (!x || !x.code || Date.now() - (x.at || 0) > 6 * 3600e3) { FBX.remove(ref); return; }
   let room = null; try { room = (await FBX.get(fbr('rooms/' + x.code))).val(); } catch (e) {}
   const open = room && (x.g === 'dealmon' ? room.g === 'dealmon' : room.st === 'lobby');
@@ -14012,6 +14022,198 @@ function rcLeague() {
   });
 }
 window.__rcSet = t => rcSettings(t);
+// ---------- 8.6.7 the club's league (الدوري), real: members register, the tables of a knockout tree, every match a real room ----------
+// rooms/<club>/lg = {id, g, per, tables, fee, prizes, voice, az, by, at, end, st: join|play|done|cancel, reg/<uid>, teams: [[uid | 'bot:name']], res/<match>: 'a'|'b', rooms/<match>: code}
+const RLG = {};
+const rlgL = () => RC.data && RC.data.lg && RC.data.lg.id ? RC.data.lg : null;
+const rlgGames = () => PLAYV_VS.filter(g => g.k !== 'dealmon' && g.k !== 'mafia' && g.k !== 'solitaire');
+function rlgTeamsOf(L) {   // before the start: the registered players in order (pairs for زوجي), the empty places «بانتظار…»
+  if (L.teams) return L.teams;
+  const R = Object.entries(L.reg || {}).sort((a, b) => a[1].at - b[1].at).map(x => x[0]), t = [];
+  for (let i = 0; i < L.tables * 2; i++) t.push(R.slice(i * L.per, i * L.per + L.per));
+  return t;
+}
+const rlgName = (L, u) => !u ? '' : u.startsWith('bot:') ? u.slice(4) + ' 🤖' : (L.reg && L.reg[u] && L.reg[u].n) || ((RC.data.members || {})[u] || {}).n || 'لاعب';
+// the tree from the results: two halves that meet in the final
+function rlgTree(L) {
+  const T = rlgTeamsOf(L), n = L.tables * 2, res = L.res || {};
+  const half = (ids, pre) => { const R = []; let alive = ids, r = 0;
+    while (alive.length > 1) { const ms = [], next = []; for (let i = 0; i < alive.length; i += 2) { const a = alive[i], b = alive[i + 1], id = pre + r + '_' + i / 2, x = res[id], w = a == null || b == null ? null : x === 'a' ? a : x === 'b' ? b : null; ms.push({id, a, b, w}); next.push(w); } R.push(ms); alive = next; r++; }
+    return {R, w: alive[0]}; };
+  const ids = Array.from({length: n}, (_, i) => i), top = half(ids.slice(0, n / 2), 'T'), bot = half(ids.slice(n / 2), 'B');
+  const fx = res.F, fin = {id: 'F', a: top.w, b: bot.w, w: top.w == null || bot.w == null ? null : fx === 'a' ? top.w : fx === 'b' ? bot.w : null};
+  return {top: top.R, bot: bot.R, final: fin, teams: T};
+}
+const rlgAll = B => [...B.top.flat(), ...B.bot.flat(), B.final];
+const rlgRound = B => { const rs = B.top.length + 1; for (let r = 0; r < rs; r++) { const ms = r < B.top.length ? [...B.top[r], ...B.bot[r]] : [B.final]; if (ms.some(m => m.w == null)) return r; } return rs; };
+const rlgHumans = (L, t) => (rlgTeamsOf(L)[t] || []).filter(u => u && !u.startsWith('bot:'));
+function rlgMine(L, B) {   // my match now (ready: both sides known, not played)
+  const me = FB && FB.uid, T = rlgTeamsOf(L);
+  return rlgAll(B).find(m => m.a != null && m.b != null && m.w == null && ((T[m.a] || []).includes(me) || (T[m.b] || []).includes(me))) || null;
+}
+// the device's work: start when the time is up (or full), settle the matches of the device's own teams
+function rlgPay(L) {   // my refund (cancelled) or my prize (1st / 2nd), once
+  const d = RC.data || {}, me = FB.uid;
+  if (L.st === 'cancel' && (PROFILE.lgPaid || {})[L.id] === 1) { PROFILE.coins += L.fee; PROFILE.lgPaid[L.id] = 2; saveProfile(); notify(`انلغى دوري ${d.name} ورجعتلك ${L.fee} كشتات`, '🏆', 'clubs'); toast(`انلغى الدوري ورجعتلك ${L.fee} كشتات`); }
+  if (L.st !== 'done') return;
+  const got = (PROFILE.lgGot = PROFILE.lgGot || {}); if (got[L.id]) return;
+  const B = rlgTree(L), T = B.teams, fin = B.final; if (fin.w == null) return;
+  const sec = fin.w === fin.a ? fin.b : fin.a, share = i => Math.floor(L.prizes[i] / L.per); got[L.id] = 1;
+  if ((T[fin.w] || []).includes(me)) giveReward({c: share(0)}, `فزت بدوري ${d.name} 🥇`, 'clubs');
+  else if ((T[sec] || []).includes(me)) giveReward({c: share(1)}, `المركز الثاني بدوري ${d.name} 🥈`, 'clubs');
+  saveProfile();
+}
+function rlgTick() {
+  const L = rlgL(), code = PROFILE.rclub; if (!L || !FB) return;
+  rlgPay(L);
+  const base = `rooms/${code}/lg`;
+  if (L.st === 'join') {
+    const regs = Object.keys(L.reg || {}).length, need = L.tables * 2 * L.per;
+    if (Date.now() >= L.end || regs >= need) FBX.runTransaction(fbr(base), cur => {
+      if (!cur || cur.st !== 'join' || cur.id !== L.id) return undefined;
+      const R = Object.entries(cur.reg || {}).sort((a, b) => a[1].at - b[1].at).map(x => x[0]);
+      if (R.length < 2) { cur.st = 'cancel'; return cur; }
+      const names = mgShuffle(LG_NAMES.slice()), teams = []; let k = 0;
+      for (let i = 0; i < cur.tables * 2; i++) { const t = []; for (let j = 0; j < cur.per; j++) t.push(R[i * cur.per + j] || 'bot:' + names[k++ % names.length]); teams.push(t); }
+      cur.teams = mgShuffle(teams); cur.st = 'play'; cur.t0 = Date.now(); return cur;
+    });
+    return;
+  }
+  if (L.st !== 'play') return;
+  const B = rlgTree(L);
+  rlgAll(B).forEach(m => {   // a table of the device only: decided at once
+    if (m.a == null || m.b == null || m.w != null) return;
+    if (!rlgHumans(L, m.a).length && !rlgHumans(L, m.b).length) FBX.runTransaction(fbr(`${base}/res/${m.id}`), x => x || (Math.random() < .5 ? 'a' : 'b'));
+  });
+  if (B.final.w != null) FBX.runTransaction(fbr(`${base}/st`), x => x === 'play' ? 'done' : undefined);
+}
+setInterval(() => { try { rlgTick(); } catch (e) {} }, 4000);
+// my match: the first real player of side «a» opens the room and invites the others; the others go in
+async function rlgPlay(m) {
+  const L = rlgL(), code = PROFILE.rclub; if (!L || !m) return;
+  const T = rlgTeamsOf(L), A = T[m.a], Bt = T[m.b], hum = [...A, ...Bt].filter(u => !u.startsWith('bot:'));
+  const g = pvFind(L.g); if (!g) return;
+  const mineA = A.includes(FB.uid), my = mineA ? A : Bt, op = mineA ? Bt : A;
+  if (hum.length === 1) {   // only me at this table: I play it here against the device, the result goes up the tree
+    PLAY_VAR = g.v || null; NEXT_AZT = L.az || 0; NEXT_VOICE = false; try { onlineEnd(); } catch (e) {}
+    const mate = my.find(u => u !== FB.uid);
+    FORCE_NAMES = L.per === 2 ? [rlgName(L, op[0]).replace(' 🤖', ''), rlgName(L, mate).replace(' 🤖', ''), rlgName(L, op[1]).replace(' 🤖', '')] : [rlgName(L, op[0]).replace(' 🤖', '')];
+    RLG.local = {club: code, id: L.id, mid: m.id, a: A, b: Bt};
+    return launchAny(g.k, {mode: L.per === 2 ? 'team' : 'normal', count: L.per === 2 ? 4 : 2, slow: false, diff: 'normal'});
+  }
+  const ex = (L.rooms || {})[m.id];
+  if (ex) { const v = (await FBX.get(fbr('rooms/' + ex))).val(); if (v && v.st === 'lobby' && v.lg && v.lg.mid === m.id) return netJoin(ex); }
+  const host = hum[0];
+  if (host !== FB.uid) return toast(`استنى ${rlgName(L, host)} يفتح غرفة المباراة، توصلك دعوة 📨`, 3000);
+  const H = A.includes(host) ? A : Bt, O = H === A ? Bt : A;   // the host's team first (seat 0), the teams at 0·2 and 1·3
+  const order = L.per === 2 ? [H[0] === host ? H[0] : H[1], O[0], H[0] === host ? H[1] : H[0], O[1]] : [host, O[0]];
+  RLG.opening = true;
+  await netCreate(GAMES.find(x => x.k === g.k), L.per === 2 ? 'team' : 'normal', {count: order.length, v: g.v || null, azt: L.az || 0});
+  let rc = null; for (let t = 0; t < 40 && !rc; t++) { await new Promise(r => setTimeout(r, 250)); rc = NETR && NETR.host && NETR.code; }
+  RLG.opening = false; if (!rc) return;
+  await FBX.update(fbr('rooms/' + rc), {lg: {club: code, id: L.id, mid: m.id, a: A, b: Bt, order}});
+  await FBX.set(fbr(`rooms/${code}/lg/rooms/${m.id}`), rc);
+  for (const u of hum) if (u !== FB.uid) try { await rsInviteTo(u, rc, g.k); } catch (e) {}
+  toast('انفتحت غرفة مباراتك، وانرسلت الدعوة لخصومك ✅ تبدي وحدها أول ما يدخلون', 3200);
+}
+// the end of a league match: whoever played writes the result (once)
+function rlgResult(won) {
+  let lg = RLG.local; RLG.local = null;
+  const R = NETR; if (!lg && R && R.room && R.room.lg) lg = R.room.lg;
+  if (!lg || !FB) return;
+  const side = (lg.a || []).includes(FB.uid) ? 'a' : (lg.b || []).includes(FB.uid) ? 'b' : null; if (!side) return;
+  const w = won ? side : side === 'a' ? 'b' : 'a', path = `rooms/${lg.club}/lg/res/${lg.mid}`, L = rlgL();
+  FBX.runTransaction(fbr(path), x => x || w).then(r => { if (r.committed && r.snapshot.val() === w) {
+    const nm = arr => arr.map(u => L ? rlgName(L, u).replace(' 🤖', '') : 'لاعب').join(' و');
+    FBX.push(fbr(`rooms/${lg.club}/chat`), {u: 'sys', n: '', m: `🏆 الدوري: ${nm(w === 'a' ? lg.a : lg.b)} فاز على ${nm(w === 'a' ? lg.b : lg.a)}`, t: Date.now()}); } }).catch(() => {});
+}
+// the league window: create (admins) · register · the tree and «العب مباراتك» · the winners
+function rcLeague() {
+  const code = PROFILE.rclub; if (!RC.data || !code) return;
+  modal((s, close) => {
+    let first = true;
+    const draw = () => {
+      if (!first && !s.isConnected) return; first = false;
+      if (s.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return;
+      const d = RC.data; if (!d) return;
+      s.innerHTML = '';
+      const L = rlgL(), adm = rcRole(d) !== 'mem', base = `rooms/${code}/lg`;
+      s.append(h('h3', {style: 'text-align:center'}, `🏆 دوري ${d.name}`));
+      if (!L) {
+        if (adm) s.append(rlgCreate(code, d));
+        else s.append(h('p', {class: 'hint', style: 'text-align:center'}, 'ماكو دوري هسه. الرئيس أو المشرف يكدر يطلق دوري بأي وقت.'));
+        s.append(h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع')); return;
+      }
+      const g = pvFind(L.g) || {name: L.g}, B = rlgTree(L), T = B.teams, me = FB.uid;
+      const teams = T.map(t => ({names: (t || []).map(u => rlgName(L, u)), me: (t || []).includes(me)}));
+      s.append(h('p', {class: 'lgline'}, `${g.name}${L.az ? ' · لحد ' + L.az : ''} · ${L.per === 2 ? 'زوجي' : 'فردي'}${L.voice ? ' · 🎙️ بالصوت' : ''} · ${L.tables} طاولات · الرسوم ${L.fee.toLocaleString('en')} للاعب · 🥇 ${L.prizes[0].toLocaleString('en')} · 🥈 ${L.prizes[1].toLocaleString('en')}${L.per === 2 ? ' (تتقسم على اللاعبين)' : ''}`));
+      const myPaid = (PROFILE.lgPaid = PROFILE.lgPaid || {})[L.id];
+      if (L.st === 'join') {
+        const regs = Object.keys(L.reg || {}), need = L.tables * 2 * L.per, left = Math.max(0, L.end - Date.now());
+        s.append(leagueTree(B, teams.map(t => ({names: t.names.length ? t.names : ['بانتظار لاعب…'], me: t.me})), 0, null));
+        s.append(h('div', {class: 'lgjoin'}, h('b', {}, `${regs.length}/${need}`), h('div', {class: 'pb'}, h('i', {style: `width:${regs.length / need * 100}%`})), h('small', {}, `⏳ يغلق التسجيل بعد ${Math.floor(left / 6e4)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')} · الأماكن الفارغة يكملها الجهاز`)));
+        if (!(L.reg || {})[me]) s.append(h('button', {type: 'button', class: 'btn gold', onclick: async () => {
+          if (PROFILE.coins < L.fee) return toast('رصيدك ما يكفي');
+          if (!(await confirmBox('تسجّل بالدوري؟', `الرسوم ${L.fee.toLocaleString('en')} كشتات.`, 'سجّل'))) return;
+          PROFILE.coins -= L.fee; PROFILE.lgPaid[L.id] = 1; saveProfile(); try { SFX.play('bank'); } catch (e) {}
+          await FBX.set(fbr(`${base}/reg/${me}`), {n: PROFILE.name || 'لاعب', av: rcSmallAv(), at: Date.now()}); draw();
+        }}, coinImg(), `سجّل بـ${L.fee.toLocaleString('en')}`));
+        else s.append(h('p', {class: 'hint', style: 'text-align:center'}, '✅ انت مسجّل. إذا ما سجّل لاعبين اثنين على الأقل ينلغي الدوري وترجعلك الرسوم.'));
+        if (adm) s.append(h('div', {class: 'btnrow'},
+          h('button', {type: 'button', class: 'btn primary', disabled: regs.length < 2, onclick: () => FBX.update(fbr(base), {end: Date.now() - 1})}, '▶ ابدأ هسه'),
+          h('button', {type: 'button', class: 'btn danger', onclick: async () => { if (!(await confirmBox('تلغي الدوري؟', 'ترجع الرسوم لكل اللي سجّلوا.', 'إلغاء الدوري'))) return; FBX.update(fbr(base), {st: 'cancel'}); }}, 'إلغاء الدوري')));
+      } else if (L.st === 'cancel') {
+        s.append(h('div', {class: 'note'}, 'انلغى الدوري ورجعت الرسوم للي سجّلوا.'));
+        if (adm) s.append(h('button', {type: 'button', class: 'btn gold', onclick: () => FBX.remove(fbr(base))}, 'دوري جديد'));
+      } else {
+        const cur = rlgRound(B);
+        s.append(leagueTree(B, teams, cur, null));
+        if (L.st === 'done' && B.final.w != null) {
+          const fin = B.final, win = fin.w, sec = fin.w === fin.a ? fin.b : fin.a;
+          s.append(h('div', {class: 'lgwin'}, h('b', {}, '🥇 ' + teams[win].names.join(' و')), h('span', {}, '🥈 ' + (teams[sec] ? teams[sec].names.join(' و') : ''))));
+          if (adm) s.append(h('button', {type: 'button', class: 'btn gold', onclick: () => FBX.remove(fbr(base))}, 'دوري جديد'));
+        } else {
+          const m = rlgMine(L, B);
+          if (m) { const opp = (T[m.a] || []).includes(me) ? T[m.b] : T[m.a];
+            s.append(h('button', {type: 'button', class: 'btn gold', style: 'width:100%', onclick: () => { close(); rlgPlay(m); }}, `🎮 العب مباراتك ضد ${opp.map(u => rlgName(L, u)).join(' و')}`)); }
+          else if (teams.some(t => t.me)) s.append(h('p', {class: 'hint', style: 'text-align:center'}, '⏳ استنى لحد ما تخلص مباريات الجولة، وبعدها تطلعلك مباراتك.'));
+          s.append(h('p', {class: 'hint', style: 'text-align:center'}, '🎮 كل مباراة بين لاعبين حقيقيين تنلعب أونلاين بغرفة، والطاولات اللي بيها الجهاز بس تنحسم وحدها.'));
+          if (adm) { const stuck = rlgAll(B).filter(x => x.a != null && x.b != null && x.w == null && (rlgHumans(L, x.a).length || rlgHumans(L, x.b).length));
+            if (stuck.length) s.append(h('button', {type: 'button', class: 'btn', onclick: async () => { if (!(await confirmBox('تحسم المباريات المعلّكة؟', `${stuck.length} مباراة ما انلعبت: تنحسم بالقرعة.`, 'احسم'))) return; stuck.forEach(x => FBX.runTransaction(fbr(`${base}/res/${x.id}`), v => v || (Math.random() < .5 ? 'a' : 'b'))); }}, `⏩ احسم المعلّكة (${stuck.length})`)); }
+        }
+      }
+      s.append(h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع'));
+    };
+    RLG.draw = draw; draw();
+    const iv = setInterval(() => { if (!s.isConnected) return clearInterval(iv); draw(); }, 1000);
+  });
+}
+function rlgCreate(code, d) {
+  const el = h('div', {class: 'lgcreate'}), G = rlgGames();
+  const game = h('select', {'aria-label': 'اللعبة'}, G.map(g => h('option', {value: g.id}, g.name)));
+  const per = h('select', {'aria-label': 'زوجي أو فردي'}, h('option', {value: '2'}, 'زوجي'), h('option', {value: '1'}, 'فردي'));
+  const tables = h('select', {'aria-label': 'كم طاولة'}, [2, 4, 6, 8].map(n => h('option', {value: String(n)}, `${n} طاولات`)));
+  const mins = h('select', {'aria-label': 'وقت التسجيل'}, [5, 10, 15, 30, 45, 60].map(n => h('option', {value: String(n)}, `${n} دقيقة`)));
+  const voice = voiceRow(true), azr = azRow(), azBox = h('div'), info = h('p', {class: 'hint'});
+  const upd = () => {
+    const g = pvFind(game.value); azBox.innerHTML = ''; if (game.value === 'domino.fives') azBox.append(azr.el);
+    const solo = !g.modes.includes('team'); if (solo) per.value = '1'; per.disabled = solo;
+    const c = LEAGUE_CFG[tables.value], pz = per.value === '1' ? c.solo : c.team;
+    info.textContent = `الرسوم ${c.fee.toLocaleString('en')} لكل لاعب · الأول ${pz[0].toLocaleString('en')} · الثاني ${pz[1].toLocaleString('en')}${per.value === '2' ? ' (للفريق)' : ''}${solo ? ' · هاي اللعبة فردي بس' : ''}`;
+  };
+  [game, per, tables].forEach(x => x.onchange = upd); upd();
+  el.append(h('div', {class: 'lbl'}, 'دوري جديد للأعضاء'), h('p', {class: 'hint'}, 'يبدي التسجيل من هسه، وكل الأعضاء توصلهم رسالة بالشات.'),
+    h('label', {class: 'fld'}, 'اللعبة', game), h('label', {class: 'fld'}, 'زوجي أو فردي', per), h('label', {class: 'fld'}, 'عدد الطاولات', tables), h('label', {class: 'fld'}, 'وقت التسجيل', mins), voice.el, azBox, info,
+    h('button', {type: 'button', class: 'btn gold', onclick: async () => {
+      const g = pvFind(game.value), p = g.modes.includes('team') ? +per.value : 1, t = +tables.value, c = LEAGUE_CFG[t];
+      const L = {id: 'L' + Date.now().toString(36), g: game.value, per: p, tables: t, fee: c.fee, prizes: p === 1 ? c.solo : c.team, voice: voice.on(), az: game.value === 'domino.fives' ? (azr.val() || 150) : 0, by: FB.uid, at: Date.now(), end: Date.now() + +mins.value * 6e4, st: 'join'};
+      await FBX.set(fbr(`rooms/${code}/lg`), L);
+      FBX.push(fbr(`rooms/${code}/chat`), {u: 'sys', n: '', m: `🏆 بدأ التسجيل بدوري ${g.name} (${p === 2 ? 'زوجي' : 'فردي'} · ${t} طاولات) · سجّل من ⚙️ ← 🏆`, t: Date.now()});
+      Object.keys(d.members || {}).forEach(u => { if (u !== FB.uid) try { FBX.push(fbr(`rooms/0000/inv/${u}`), {from: FB.uid, n: PROFILE.name || 'لاعب', av: rcSmallAv(), lg: code, gname: `دوري ${g.name}`, at: Date.now()}); } catch (e) {} });
+    }}, '🏆 أطلق الدوري هسه'));
+  return el;
+}
+window.__rlg = {coins: () => [PROFILE.coins, (PROFILE.rwQ || []).length], L: () => rlgL(), tree: () => { const L = rlgL(); return L && rlgTree(L); }, mine: () => { const L = rlgL(); return L && rlgMine(L, rlgTree(L)); }, play: () => { const L = rlgL(); return rlgPlay(rlgMine(L, rlgTree(L))); }, result: w => rlgResult(w), R: RLG, open: () => rcLeague(), room: () => NETR && NETR.room};
 
 // ---------- 8.1 أونو و«أونو لا ترحم» ----------
 // one round: the first to empty his hand wins. «اسحب» cards stack (one of the same or a bigger draw on top).
