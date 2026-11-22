@@ -2002,6 +2002,26 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 .mmerge{max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain}
 .rprof{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px 0 10px}.rprof img{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #e8c47a}.rprof b{font-size:21px}
 .rcem2{font-size:34px;line-height:1}
+/* 8.6.2 UNO: the sign in the middle of the card's circle; the reverse sign drawn; a long hand in two rows; my picture under the cards with «أونو» on each side */
+.uc.img .uco{inset:0!important;left:0!important;top:0!important;width:100%!important;height:100%!important;border-radius:0!important;display:flex!important;align-items:center;justify-content:center;padding-top:5%;box-sizing:border-box}
+.uc.img .uco b{margin:0!important;display:flex;align-items:center;justify-content:center;line-height:1}
+.uc.img .uco em.ucar{position:absolute;top:31%!important;left:0;right:0;display:flex;justify-content:center}
+.uc.img .uco em.ucar .urev{width:15px;height:15px}
+.uc.img .uco:has(.ucar) b{margin-top:16%!important}
+.urev{display:inline-flex;width:1em;height:1em;color:#eef1f5;filter:drop-shadow(0 1.5px 1px rgba(0,0,0,.75))}.urev svg{width:100%;height:100%}
+.uc.img .uco b .urev{width:34px;height:34px}.unotop .uc.img .uco b .urev{width:42px;height:42px}
+.ucn .urev{width:9px;height:9px}
+.unopend{direction:ltr}
+.unohands{width:100%;display:flex;flex-direction:column;align-items:center}
+.unohand.two{min-height:0;padding:4px 6px 0}.unohand.two+.unohand.two{margin-top:-22px}
+.unomerow{display:flex;align-items:center;justify-content:center;gap:12px;margin:2px 0 6px}
+.unomerow .unobtn{min-width:84px;height:44px;font-size:19px}.unomerow .unobtn.x{min-width:96px;height:46px}
+.unoc{display:grid!important;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px}
+.unoc>.unotop{grid-column:2;grid-row:1}.unoc>.uback{grid-column:3;grid-row:1;justify-self:start}.unoc>.unodir{position:static!important;grid-column:1;grid-row:1;justify-self:end;font-size:34px}
+.uc.img .uco em.ucar{top:24%!important}.uc.img .uco:has(.ucar) b{margin-top:24%!important}
+.rclist{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.rcl{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(232,196,122,.35)}
+.rcl .e{font-size:30px}.rcl div{flex:1;display:flex;flex-direction:column}.rcl small{opacity:.8}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -6221,6 +6241,7 @@ function tableSay(root, sel, seat, i) {
   b.style.top = Math.max(4, seat === 0 ? r.top - hh - 8 : r.bottom + 6) + 'px';
   if (stk) SFX.play('stk' + (i - 100), .9);
   if (stk && seat === 0 && typeof dmEvent === 'function') dmEvent('sticker');
+  if (seat === 0 && !tableSay.quiet && typeof netSayOut === 'function') netSayOut(i);   // 8.6.2 online: my friends see it too
   const gone = () => { if (!root.isConnected || root.hidden || !document.body.contains(root)) b.remove(); };
   const t = setInterval(gone, 400);
   setTimeout(() => { clearInterval(t); b.remove(); }, stk ? (STICKERS[i - 100] && (STICKERS[i - 100].vid || STICKERS[i - 100].anim) ? 4900 : 4200) : 3300);
@@ -6805,8 +6826,8 @@ function launchTawla(opt) { afkReset(); haltOthers('tawla'); twBusy = false; twA
   // 8.5 with a friend: both phones play from the bottom; the friend's moves come mirrored (the host's board is the shared one)
   let TS = null, fr = null;
   if (opt.net) { const N = opt.net, id = TW_ID, op = N.order.find(u => u !== N.R.uid), x = N.room.seats[op] || {n: 'صاحبك'};
-    fr = {name: x.n, av: x.av, human: false, remote: true, friend: true};
-    TS = {net: N, me: N.me, op: 1 - N.me, slow: false, rnd: netRng(N.seed), aliveFn: () => !!TG && TG.ts === TS && id === TW_ID, say: t => toast(t, 2000)};
+    fr = {name: x.n, av: x.av, human: false, remote: true, friend: true, uid: op};
+    TS = {net: N, me: N.me, op: 1 - N.me, slow: false, rnd: netRng(N.seed), aliveFn: () => !!TG && TG.ts === TS && id === TW_ID, say: t => toast(t, 2000), sayAt: (a, i) => twSay(1, i)};
     TS.pl = N.me === 0 ? [{name: PROFILE.name, human: true}, fr] : [fr, {name: PROFILE.name, human: true}]; }
   TG = {mode: opt.mode, diff: opt.mode === 'tutorial' ? 'easy' : opt.diff, slow: !!opt.slow, ts: TS,
     target: opt.one || opt.mode === 'normal' ? 5 : 1,   // a tournament duel (opt.one) is a normal game to 5
@@ -7523,9 +7544,9 @@ function launchDomino(opt) { afkReset(); haltOthers('domino');
   const pl = [{name: PROFILE.name || 'أنا', av: myAvatar(), human: true}];
   if (opt.net) {   // 8.5 with friends: the seats by the room's order; my seat is at the bottom (the others turn with me)
     const N = opt.net, id = DM_ID, seats = N.room.seats || {}, r = netRng(N.seed ^ 0x2f6b), bn = mgShuffle(BOT_NAMES.slice().sort(), r).filter(x => !N.order.some(u => seats[u] && seats[u].n === x));
-    const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
-    TS = {net: N, me: N.me, pl: A, slow: false, aliveFn: () => !!DG && DG.ts === TS && id === DM_ID, say: t => toast(t, 2000)};
-    for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend}); }
+    const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid, uid: u} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
+    TS = {net: N, me: N.me, pl: A, slow: false, aliveFn: () => !!DG && DG.ts === TS && id === DM_ID, sayAt: (a, i) => dmSay((a - N.me + n) % n, i), say: t => toast(t, 2000)};
+    for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend, uid: x.uid}); }
   } else
   for (let i = 1; i < n; i++) pl.push({name: names[i - 1] + (opt.mode === 'team' && i === 2 ? ' 🤝' : ''), av: botAv(names[i - 1], i), human: false});
   giveSkins(pl);
@@ -8692,9 +8713,9 @@ function launchKhabitha(opt) { afkReset(); haltOthers('khabitha');
   let TS = null;
   if (opt.net) {   // 8.5 with friends: my seat at the bottom, the others turn with me; every turn ends by sending the whole table
     const N = opt.net, id = KH_ID, seats = N.room.seats || {}, r = netRng(N.seed ^ 0x51a7), bn = mgShuffle(BOT_NAMES.slice().sort(), r).filter(x => !N.order.some(u => seats[u] && seats[u].n === x));
-    const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
-    TS = {net: N, me: N.me, pl: A, slow: false, aliveFn: () => !!KG && KG.ts === TS && id === KH_ID, say: t => toast(t, 2000)};
-    for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend}); }
+    const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid, uid: u} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
+    TS = {net: N, me: N.me, pl: A, slow: false, aliveFn: () => !!KG && KG.ts === TS && id === KH_ID, sayAt: (a, i) => khSay((a - N.me + n) % n, i), say: t => toast(t, 2000)};
+    for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend, uid: x.uid}); }
   } else
   for (let i = 1; i < n; i++) pl.push({name: names[i - 1] + (opt.mode === 'team' && i === 2 ? ' 🤝' : ''), av: botAv(names[i - 1], i), human: false});
   giveSkins(pl);
@@ -9574,7 +9595,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.6.1';
+const APP_VERSION = '8.6.2';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -11828,9 +11849,20 @@ document.addEventListener('click', e => {
   if (a.dataset.kh != null && KG) { const p = +a.dataset.kh; if (p) pl = KG.pl[p]; }
   else if (a.dataset.dm != null && DG) { const p = +a.dataset.dm; if (p) pl = DG.pl[p]; }
   else if (a.dataset.tw != null && TG) { const p = +a.dataset.tw; if (p) pl = TG.pl[p]; }
-  else if (a.dataset.seat != null && G && ME) { const p = +a.dataset.seat; if (p !== ME.id) { const q = G.players[p]; pl = q && {name: q.name, av: q.avatar}; } }
-  if (pl) playerSheet({n: pl.name.replace(' 🤝', ''), av: pl.av});
+  else if (a.dataset.seat != null && G && ME) { const p = +a.dataset.seat; if (p !== ME.id) { const q = G.players[p]; let uid = null; try { if (NET.fb) uid = typeof q.remote === 'string' ? q.remote : (q.human && NET.mode === 'client' && p === 0 ? window.__dmHost : null); } catch (e) {} pl = q && {name: q.name, av: q.avatar, uid}; } }
+  if (pl) openProfile(pl);
 });
+document.addEventListener('click', e => {   // 8.6.2 the new games: a tap on a player's picture
+  const a = e.target.closest && e.target.closest('.mgseat[data-seat] .mgav'); if (!a || !MGS) return;
+  const i = +a.closest('.mgseat').dataset.seat; if (i === (MGS.me || 0)) return;
+  const p = MGS.pl[i]; if (p) openProfile(p);
+});
+function openProfile(pl) {   // one profile for everybody: a real player can be added; a device player says so
+  const n = String(pl.name || '').replace(' 🤝', '').replace(' 🤖', '');
+  if (pl.uid && typeof rProfile === 'function') return rProfile(pl.uid, n, pl.av);
+  modal((s, close) => s.append(h('div', {class: 'rprof'}, h('img', {src: pl.av || avatarURL('m', 1), alt: ''}), h('b', {}, n), h('small', {}, '🤖 لاعب من الجهاز')),
+    h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع')));
+}
 // ---------- boot ----------
 drawTabs(); goTab('home');
 if (!PROFILE.name) registerSheet().then(() => goTab('home'));
@@ -13036,10 +13068,11 @@ function mgLaunch(k, o = {}) {
     if (!N.seated) { const su = Array(n).fill(null); N.order.forEach((u, k) => { let j = M.netSeat ? M.netSeat(k, n) : k; while (su[j] != null) j = (j + 1) % n; su[j] = u; }); N.order = su; N.me = su.indexOf(N.R.uid); N.seated = true; }
     me = N.me; pl = [];
     for (let i = 0; i < n; i++) { const u = N.order[i], x = u && seats[u];
-      if (x) pl.push({name: x.n, av: x.av, human: i === me, remote: i !== me, friend: true});
+      if (x) pl.push({name: x.n, av: x.av, human: i === me, remote: i !== me, friend: true, uid: u});
       else { const nm = bn.find(y => !pl.some(q => q.name === y) && !N.order.some(v => seats[v] && seats[v].n === y)) || 'الجهاز'; pl.push({name: nm, av: botAv(nm, i + 1), human: false}); } }
   }
   MGS = {k, id: MG_ID, o, mode: o.mode || 'normal', diff: o.mode === 'tutorial' ? 'easy' : (o.diff || 'normal'), slow: !!o.slow, pl, M, me, net: N || null, rnd: N ? netRng(N.seed) : Math.random};
+  MGS.sayAt = (a, i) => mgStk(MGS, a, i);
   if (N) N.begin(MGS);
   $('#splash').hidden = true; mgEl.hidden = false; mgEl.className = 'mgroot mg-' + k; mgEl.innerHTML = '';
   const tb = ['uno', 'unonm', 'w21', 'solitaire'].includes(k) && MGTBL[PROFILE.eq.mgtbl] && MGTBL[PROFILE.eq.mgtbl].bg;   // a table I bought for these games
@@ -13062,7 +13095,7 @@ function mgAskLeave() {
 function mgTop(S, title, extra) {
   return h('div', {class: 'mgtop'},
     h('button', {type: 'button', class: 'mgx', 'aria-label': 'اطلع من اللعبة', onclick: mgAskLeave}, '✕'),
-    h('b', {class: 'mgtt'}, title), h('div', {class: 'mgex'}, extra || '', h('button', {type: 'button', class: 'mgx mgq', 'aria-label': 'القوانين', onclick: () => mgRules(S.k)}, '؟')));
+    h('b', {class: 'mgtt'}, title), h('div', {class: 'mgex'}, extra || '', h('button', {type: 'button', class: 'mgx mgq', 'aria-label': 'ملصقات وردود', onclick: () => mgReplies(S)}, '💬'), h('button', {type: 'button', class: 'mgx mgq', 'aria-label': 'القوانين', onclick: () => mgRules(S.k)}, '؟')));
 }
 // a player's chip: photo, name, and a small line (cards in hand, score…)
 function mgSeat(S, i, line, opts = {}) {
@@ -13284,6 +13317,7 @@ class NetG {
   begin(S, leave) {
     this.S = S; NET_CUR = {N: this, leave: leave || (() => { if (MGS === S) { MG_ID++; MGS = null; mgClockStop(); mgEl.hidden = true; mgEl.innerHTML = ''; backToShell(); } })};
     this.subs.push(FBX.onChildAdded(fbr(this.base + '/log'), snap => { if (this.dead()) return; const k = +snap.key.slice(1); this.L[k] = snap.val(); this.pump(); }));
+    netSayListen(this);
     if (this.host) this.subs.push(FBX.onChildAdded(fbr(this.base + '/in'), snap => { const x = snap.val(); FBX.remove(snap.ref); if (!this.dead()) this.inbox(x); }));
   }
   dead() { return !this.S || !mgAlive(this.S) || NETR !== this.R || this.R.gid !== this.gid; }
@@ -13357,7 +13391,7 @@ window.__fbRoom = {
     if (!/^[0-9]{4}$/.test(code)) throw new Error('code');
     const s0 = await FBX.get(fbr(base));
     if (!s0.exists()) await FBX.set(fbr(base), {g: 'dealmon', host: me, ts: Date.now(), st: 'dm'});   // a new room (the host)
-    else { const v = s0.val(); if (v.g !== 'dealmon') throw new Error('هذا الكود مو لغرفة ديل مون'); }
+    else { const v = s0.val(); if (v.g !== 'dealmon') throw new Error('هذا الكود مو لغرفة ديل مون'); window.__dmHost = v.host; }
     let list = [], subs = [];
     const fire = () => subs.forEach(f => { try { f({peers: list}); } catch (e) { console.error(e); } });
     const off = FBX.onValue(fbr(`${base}/prs`), snap => {
@@ -13453,7 +13487,7 @@ async function rcCreate(name, em) {
       if (r.committed) return c; }
     throw new Error('nocode');
   });
-  if (code) { PROFILE.rclub = code; saveProfile(); toast(`تأسس نادي ${name} 🎉 الكود ${code}`, 2600); rcWatch(); drawClubs(); }
+  if (code) { try { FBX.set(fbr(`rooms/0000/clubs/${code}`), {name, em, n: 1, xp: 0, at: Date.now()}); } catch (e) {} PROFILE.rclub = code; saveProfile(); toast(`تأسس نادي ${name} 🎉`, 2600); rcWatch(); drawClubs(); }
 }
 async function rcJoin(code) {
   code = String(code || '').replace(/[^0-9]/g, ''); if (code.length !== 4) return toast('الكود 4 أرقام');
@@ -13474,7 +13508,7 @@ async function rcLeave() {
   const code = PROFILE.rclub, d = RC.data;
   try { await netInit();
     const left = Object.entries((d && d.members) || {}).filter(([u]) => u !== FB.uid).sort((a, b) => a[1].j - b[1].j);
-    if (!left.length) await FBX.remove(fbr('rooms/' + code));
+    if (!left.length) { await FBX.remove(fbr('rooms/' + code)); try { await FBX.remove(fbr(`rooms/0000/clubs/${code}`)); } catch (e) {} }
     else { if (d.owner === FB.uid) await FBX.update(fbr('rooms/' + code), {owner: left[0][0]}); await FBX.remove(fbr(`rooms/${code}/members/${FB.uid}`)); await FBX.push(fbr(`rooms/${code}/chat`), {u: 'sys', n: '', m: `${PROFILE.name || 'لاعب'} طلع من النادي`, t: Date.now()}); }
   } catch (e) {}
   PROFILE.rclub = null; saveProfile(); rcStop(); drawClubs();
@@ -13489,7 +13523,7 @@ async function rcWatch() {
   RC.offs.push(FBX.onValue(fbr('rooms/' + code), s => {
     const v = s.val();
     if (!v || v.g !== 'club' || !(v.members || {})[FB.uid]) { if (RC.code === code) { rcStop(); PROFILE.rclub = null; saveProfile(); toast('النادي انحذف أو انطلعت منه'); } }
-    else RC.data = v;
+    else { RC.data = v; const M = Object.values(v.members || {}), sig = M.length + ':' + M.reduce((a, m) => a + (m.xp || 0), 0); if (RC.sig !== sig) { RC.sig = sig; try { FBX.update(fbr(`rooms/0000/clubs/${code}`), {name: v.name, em: v.em || '🛡️', n: M.length, xp: M.reduce((a, m) => a + (m.xp || 0), 0), at: Date.now()}); } catch (e) {} } }
     if (RC.upd && RC.upd.isConnected && RC.upd._u) RC.upd._u();   // the club room is open: only its parts change (what you type stays)
     else if (RC.page && RC.page.isConnected) drawClubs();
     try { if (v && v.members) Object.entries(v.members).forEach(([u, m]) => { if (u !== FB.uid) rfrAdd(u, m.n, m.av, 'club'); }); } catch (e) {}
@@ -13505,6 +13539,15 @@ function rcPanel() {
   if (!PROFILE.rclub) {
     box.append(h('b', {class: 'rct'}, '🔑 نادي ربعك الحقيقي'), h('small', {}, 'سوّي نادي وانطي ربعك الكود، أو ادخل نادي صاحبك. الأعضاء والدردشة والنقاط كلها حقيقية.'),
       h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn gold', onclick: rcCreateSheet}, '➕ أسس نادي'), h('button', {type: 'button', class: 'btn primary', onclick: rcJoinSheet}, '🔑 ادخل بكود')));
+    const list = h('div', {class: 'rclist'}, h('p', {class: 'hint'}, '⏳ جاري تحميل الأندية…'));
+    box.append(h('b', {class: 'rct', style: 'font-size:16px;margin-top:6px'}, '🏛️ الأندية الحقيقية'), list);
+    netInit().then(() => FBX.get(fbr('rooms/0000/clubs'))).then(sn => {
+      const L = Object.entries(sn.val() || {}).sort((a, b) => (b[1].xp || 0) - (a[1].xp || 0)).slice(0, 50);
+      list.innerHTML = '';
+      if (!L.length) list.append(h('p', {class: 'hint'}, 'ماكو أندية بعد. أسس أول نادي 👆'));
+      L.forEach(([c, x]) => list.append(h('div', {class: 'rcl'}, h('span', {class: 'e'}, x.em || '🛡️'), h('div', {}, h('b', {}, x.name), h('small', {}, `👥 ${x.n || 1} · مستوى ${clubLvOf(x.xp || 0).L}`)),
+        h('button', {type: 'button', class: 'btn primary', disabled: (x.n || 0) >= 30, onclick: () => rcJoin(c)}, (x.n || 0) >= 30 ? 'مليان' : 'انضم'))));
+    }).catch(() => { list.innerHTML = ''; list.append(h('p', {class: 'hint'}, 'ما كدرنا نجيب الأندية، تأكد من النت')); });
     return box;
   }
   rcWatch();
@@ -13745,6 +13788,37 @@ function rsConvs(close) {
 }
 window.__rs = {S: () => ({on: RS.on, fr: Object.keys(RS.fr).length, rq: Object.keys(RS.rq).length, ib: Object.values(RS.ib).map(x => x.n + ':' + x.last + ':' + x.seen), un: rsUnread()}), uid: () => FB && FB.uid, req: (u, n) => rsRequest(u, n, ''), acc: u => rsAccept(u), prof: (u, n) => rProfile(u, n, ''), dm: (u, n) => rdmThread(u, n, '')};
 window.__ms = k => modesSheet(GAMES.find(g => g.k === k), null);
+// ---------- 8.6.2 stickers and quick words reach the friends at the table ----------
+// tableSay() for my seat (0) sends it to rooms/<code>/say; the other phones show it over my picture on their table
+function netSayOut(i) {
+  if (!NET_CUR || !NETR || !FB) return;
+  FBX.push(fbr(`rooms/${NETR.code}/say`), {u: FB.uid, i, t: Date.now()});
+}
+function netSayListen(N) {
+  const t0 = Date.now();
+  N.subs.push(FBX.onChildAdded(fbr(`rooms/${N.R.code}/say`), snap => {
+    const x = snap.val(); if (!x || x.u === FB.uid || x.t < t0 - 3000 || N.dead()) return;
+    const a = N.order.indexOf(x.u); if (a < 0 || !N.S || !N.S.sayAt) return;
+    try { N.S.sayAt(a, x.i); } catch (e) {}
+  }));
+}
+// the quick replies window for the new games (stickers + words)
+function mgReplies(S) {
+  modal((s, close) => {
+    const send = i => { close(); mgStk(S, S.me, i); };
+    const body = h('div'); let tab = 'stk'; const tabs = h('div', {class: 'tabs'});
+    const draw = () => { tabs.innerHTML = ''; body.innerHTML = '';
+      [['stk', 'ملصقات'], ['txt', 'رسائل']].forEach(([k, l]) => tabs.append(h('button', {type: 'button', class: tab === k ? 'on' : '', onclick: () => { tab = k; draw(); }}, l)));
+      if (tab === 'txt') body.append(h('div', {class: 'replies'}, PHRASES.map((t, i) => h('button', {type: 'button', onclick: () => send(i)}, t))));
+      else body.append(h('div', {class: 'stkgrid'}, STK_ORDER.map(i => [STICKERS[i], i]).map(([st, i]) => hasStk(i) ? h('button', {type: 'button', 'aria-label': st.t, onclick: () => send(100 + i)}, stickerEl(i, true)) : null))); };
+    draw(); s.append(h('h3', {}, 'رد سريع'), tabs, body);
+  });
+}
+function mgStk(S, a, i) {   // over a seat of the new games (mine above my picture, the others under theirs)
+  if (!mgAlive(S)) return;
+  tableSay(mgEl, `.mgseat[data-seat="${a}"] .mgav`, a === S.me ? 0 : a + 1, i);
+}
+window.__mgStk = i => mgStk(MGS, MGS.me, i);
 
 // ---------- 8.1 أونو و«أونو لا ترحم» ----------
 // one round: the first to empty his hand wins. «اسحب» cards stack (one of the same or a bigger draw on top).
@@ -13945,8 +14019,8 @@ async function unoPlay(S, i, c, act) {
   if (S.nm && c.t === 'n' && c.n === 0 && live > 1) {   // every hand goes to the next player
     const L = unoLive(S), H = L.map(x => S.hands[x]); L.forEach((x, k) => { S.hands[unoNext(S, x)] = H[k]; }); mgSay('الورق دار على الكل 🔄');
   }
-  if (c.t === 'wroul') {   // the next one picks a colour and draws until it comes
-    const v = unoNext(S, i), cc = await mgTurn(S, v, () => unoAskColor(S), async () => { await mgWait(S, 400); return mgPick('rygb'.split('')); }), col = 'rygb'.includes(cc) ? cc : 'r'; if (!mgAlive(S)) return;
+  if (c.t === 'wroul') {   // the next one draws until the thrower's colour comes
+    const v = unoNext(S, i), col = 'rygb'.includes(S.color) ? S.color : 'r';   // 8.6.2 the colour is the one the thrower picked
     let k = 0; for (; k < 60; k++) { const d = unoGive(S, v, 1)[0]; if (!d || d.c === col) { if (d) k++; break; } }
     mgMark(v, '+' + k, 'draw'); mgSay(`${v === S.me ? 'سحبت' : S.pl[v].name + ' سحب'} ${k} ورقات لحد ما طلع ${UNO_COL[col]}`); S.hands.forEach(x => unoSort(x));
     if (unoMercy(S, v)) return; step = 2;
@@ -14022,11 +14096,13 @@ function unoCheck(S) {
 }
 // the cards: the owner's metal pictures (أونو / لا ترحم) with the number or the sign laid on them in silver
 const UNO_IMGK = {r: 'r', y: 'y', g: 'g', b: 'b', w: 'w'};
+const UNO_REV = () => { const e = h('span', {class: 'urev'}); e.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9"/><path d="M5.2 2.8 5.7 6.1 9 5.6"/><path d="M4 13a8 8 0 0 0 14.3 4.9"/><path d="M18.8 21.2l-.5-3.3-3.3.5"/></svg>'; return e; };
+const unoSymEl = (c, sym) => c.t === 'rev' ? UNO_REV() : sym;
 function unoCard(c, opts = {}) {
   const sym = c.t === 'n' ? String(c.n) : c.t === 'wrd4' ? '+4' : UNO_SYM[c.t], nm = MGS && MGS.nm;
   const img = ngImg('uc_' + (nm ? 'm_' : 'n_') + UNO_IMGK[c.c]);
   return h('button', {type: 'button', 'data-id': c.id, class: 'uc uc-' + c.c + (img ? ' img' : '') + (opts.cls ? ' ' + opts.cls : '') + (c.t !== 'n' ? ' ua' : '') + (sym.length > 2 ? ' long' : ''), style: img ? `background-image:url("${img}")` : '', disabled: opts.disabled, 'aria-label': (UNO_COL[c.c] || '') + ' ' + (c.t === 'n' ? c.n : UNO_NAME[c.t]), onclick: opts.onclick},
-    h('i', {class: 'ucn tl'}, sym), h('span', {class: 'uco'}, c.t === 'wrd4' ? h('em', {class: 'ucar'}, '⇄') : '', h('b', {}, sym)), h('i', {class: 'ucn br'}, sym));
+    h('i', {class: 'ucn tl'}, unoSymEl(c, sym)), h('span', {class: 'uco'}, c.t === 'wrd4' ? h('em', {class: 'ucar'}, UNO_REV()) : '', h('b', {}, unoSymEl(c, sym))), h('i', {class: 'ucn br'}, unoSymEl(c, sym)));
 }
 function unoRender(S) {
   if (!mgAlive(S)) return;
@@ -14038,22 +14114,24 @@ function unoRender(S) {
     h('div', {class: 'unotop col-' + S.color}, unoCard(top, {disabled: true}), S.pend ? h('i', {class: 'unopend'}, '+' + S.pend) : ''),
     h('div', {class: 'unodir' + (S.dir < 0 ? ' ccw' : ''), 'aria-label': S.dir > 0 ? 'الدور مع عقارب الساعة' : 'الدور عكس عقارب الساعة'}, '↻'));
   const hd = S.hands[S.me];
-  const W = Math.min(innerWidth - 16, 520), cw = 64, ov = hd.length > 1 ? Math.min(-4, (W - hd.length * cw) / (hd.length - 1)) : 0;   // 8.3 the hand always fits the screen
-  const hand = h('div', {class: 'unohand', dir: 'ltr', style: `--ov:${ov}px`}, ...hd.map(c => {
-    const ok = myTurn && (S.drawn ? c === S.drawn : unoCan(S, c));
-    return unoCard(c, {cls: ok ? 'ok' : myTurn ? 'no' : '', disabled: !ok, onclick: () => S.wait && S.wait({k: 'play', cid: c.id})});
-  }));
+  const W = Math.min(innerWidth - 16, 520), cw = 64, rows = hd.length > 11 ? [hd.slice(0, Math.ceil(hd.length / 2)), hd.slice(Math.ceil(hd.length / 2))] : [hd];   // 8.6.2 a long hand: two rows
+  const row = cs => { const ov = cs.length > 1 ? Math.min(-4, (W - cs.length * cw) / (cs.length - 1)) : 0;   // 8.3 the hand always fits the screen
+    return h('div', {class: 'unohand' + (rows.length > 1 ? ' two' : ''), dir: 'ltr', style: `--ov:${ov}px`}, ...cs.map(c => {
+      const ok = myTurn && (S.drawn ? c === S.drawn : unoCan(S, c));
+      return unoCard(c, {cls: ok ? 'ok' : myTurn ? 'no' : '', disabled: !ok, onclick: () => S.wait && S.wait({k: 'play', cid: c.id})});
+    })); };
+  const hand = h('div', {class: 'unohands'}, ...rows.map(row));
   const canSay = hd.length && hd.length <= 2 && !S.said[S.me] && !S.out[S.me] && !S.over, catchL = S.over ? [] : unoCatchable(S);
-  const btns = h('div', {class: 'unobtns'},
-    S.drawn ? h('button', {type: 'button', class: 'btn', onclick: () => S.wait && S.wait({k: 'pass'})}, 'احتفظ بيها ومرّر') : '',
-    h('button', {type: 'button', class: 'unobtn' + (canSay ? ' on' : ''), disabled: !canSay, 'aria-label': 'أونو', onclick: () => canSay && mgEv(S, {k: 'say'}, () => unoSay(S, S.me))}, 'أونو'),
-    h('button', {type: 'button', class: 'unobtn x' + (catchL.length ? ' on' : ''), disabled: !catchL.length, 'aria-label': 'أونو ✕: امسك اللي ما كال أونو', onclick: () => mgEv(S, {k: 'catch'}, () => unoCatch(S, S.me))}, 'أونو', h('b', {}, '✕')));
+  const sayB = h('button', {type: 'button', class: 'unobtn' + (canSay ? ' on' : ''), disabled: !canSay, 'aria-label': 'أونو', onclick: () => canSay && mgEv(S, {k: 'say'}, () => unoSay(S, S.me))}, 'أونو');
+  const catchB = h('button', {type: 'button', class: 'unobtn x' + (catchL.length ? ' on' : ''), disabled: !catchL.length, 'aria-label': 'أونو ✕: امسك اللي ما كال أونو', onclick: () => mgEv(S, {k: 'catch'}, () => unoCatch(S, S.me))}, 'أونو', h('b', {}, '✕'));
+  const btns = h('div', {class: 'unobtns'}, S.drawn ? h('button', {type: 'button', class: 'btn', onclick: () => S.wait && S.wait({k: 'pass'})}, 'احتفظ بيها ومرّر') : '');
   const info = h('div', {class: 'unoinfo'}, S.over ? '' : myTurn ? (S.pend ? (hd.some(c => unoCan(S, c)) ? `دورك: علّي بورقة سحب، أو اسحب ${S.pend}` : `ما عندك ورقة تعلّي بيها: راح تسحب ${S.pend}`) : S.drawn ? 'سحبت ورقة تنفع: نزّلها أو احتفظ بيها' : 'دورك') : `دور ${S.pl[S.cur].name}`);
   mgEl.innerHTML = '';
-  mgEl.append(mgTop(S, S.nm ? 'أونو لا ترحم' : 'أونو', h('span', {class: 'unocolnow uc-' + S.color}, UNO_COL[S.color])), mgRing(S, oppSeat, center), info, btns,
-    h('div', {class: 'unome' + (S.cur === S.me && !S.over ? ' on' : '')}, mgSeat(S, S.me, S.out[S.me] ? 'طلعت' : `${hd.length} ورقة`, {on: S.cur === S.me})), hand);
+  mgEl.append(mgTop(S, S.nm ? 'أونو لا ترحم' : 'أونو', h('span', {class: 'unocolnow uc-' + S.color}, UNO_COL[S.color])), mgRing(S, oppSeat, center), info, btns, hand,
+    h('div', {class: 'unomerow'}, catchB, h('div', {class: 'unome' + (S.cur === S.me && !S.over ? ' on' : '')}, mgSeat(S, S.me, S.out[S.me] ? 'طلعت' : `${hd.length} ورقة`, {on: S.cur === S.me})), sayB));
   if (MG_CLK) mgEl.append(MG_CLK.bar);
 }
+window.__unoR = S => unoRender(S);
 
 // ---------- 8.1 لودو ----------
 // 2–4 players, or 2 against 2 (the opposite colours are one team). Out on a 6, a 6 rolls again (the third 6 in a row burns the turn),
