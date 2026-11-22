@@ -1976,6 +1976,26 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 .netseat{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:12px;background:rgba(0,0,0,.18);opacity:.55;font-size:13px;text-align:center}
 .netseat.on{opacity:1;background:rgba(46,125,79,.25)}.netseat img{width:44px;height:44px;border-radius:50%;object-fit:cover}.netseat i{font-size:30px;font-style:normal;line-height:44px}
 .netcode-in{display:block;margin:10px auto;width:180px;text-align:center;font:900 36px Tajawal,Arial,sans-serif;letter-spacing:8px;padding:6px;border-radius:12px;border:2px solid #e8c47a;direction:ltr}
+.vcbtn{position:fixed;left:6px;top:calc(50% + 30px);z-index:9000;width:56px;height:56px;opacity:.92;border-radius:50%;border:3px solid #e8c47a;background:radial-gradient(circle at 35% 30%,#3a8f5e,#165234);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.55);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.vcbtn b{font-size:26px;line-height:1}.vcbtn small{font-size:8.5px;font-weight:800;white-space:nowrap}
+.vcbtn.on{background:radial-gradient(circle at 35% 30%,#ff5a47,#a3160f);transform:scale(1.12);animation:vcpulse 1s infinite}
+@keyframes vcpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,90,71,.7)}50%{box-shadow:0 0 0 14px rgba(255,90,71,0)}}
+.vctag{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:9001;background:rgba(20,10,4,.88);color:#fff1c8;border:2px solid #e8c47a;border-radius:20px;padding:6px 14px;font:700 15px Tajawal,Arial,sans-serif;pointer-events:none}
+/* 8.5 the real club */
+.rcbox{margin:8px 0;padding:12px;border-radius:16px;border:2px solid #e8c47a;background:linear-gradient(160deg,rgba(46,125,79,.35),rgba(20,10,4,.6));display:flex;flex-direction:column;gap:8px}
+.rct{font-size:19px;color:#fff1c8}.rcbox>small{opacity:.85}
+.rchead{display:flex;align-items:center;gap:10px}.rchead>div{flex:1;display:flex;flex-direction:column}.rcem{font-size:40px}
+.rccode{font-weight:900;letter-spacing:3px;color:#ffd54a}
+.rcbar{height:8px;border-radius:6px;background:rgba(0,0,0,.4);overflow:hidden}.rcbar i{display:block;height:100%;background:linear-gradient(90deg,#b8862a,#ffe08a)}
+.rcmem{display:flex;gap:8px;overflow-x:auto;padding:4px 0}
+.rcm{flex:0 0 74px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;text-align:center;opacity:.75}.rcm.on{opacity:1}
+.rcm img{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #777}.rcm.on img{border-color:#6be08a}
+.rcfeed{height:240px;overflow-y:auto;background:rgba(0,0,0,.3);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:5px}
+.rcmsg{align-self:flex-start;max-width:85%;background:rgba(255,255,255,.1);border-radius:12px;padding:5px 9px;display:flex;flex-direction:column}
+.rcmsg.me{align-self:flex-end;background:rgba(46,125,79,.55)}.rcmsg b{font-size:12px;color:#ffd54a}
+.rcsys{align-self:center;font-size:12px;opacity:.7}
+.rcsend{display:flex;gap:6px}.rcsend input{flex:1;padding:9px;border-radius:10px;border:1px solid #e8c47a;background:rgba(0,0,0,.35);color:#fff}
+.mgroot[hidden]{display:none!important}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -5233,17 +5253,18 @@ const NET = {room: null, r: null, mode: null, code: null, myPeer: null, seat: nu
 const CODE_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789';
 (async () => {
   try { NET.room = window.claude && window.claude.use ? await window.claude.use('room') : null; } catch (e) { NET.room = null; }
+  if (!NET.room) { await new Promise(r => setTimeout(r, 0)); NET.room = window.__fbRoom || null; NET.fb = !!NET.room; }   // 8.5 outside Claude's page: Firebase
   const box = $('#onlineBox'); if (!box) return;
   box.hidden = false;
   if (!NET.room) { $('#onlineBtns').hidden = true; $('#onlineNote').textContent = 'اللعب أونلاين يشتغل من رابط اللعبة على موقع Claude، وما يشتغل من الملف بدون إنترنت.'; }
 })();
 const u = c => c.uid;
-function myName() { return ($('#pname').value || 'أنا').trim() || 'أنا'; }
+function myName() { return ((typeof PROFILE !== 'undefined' && PROFILE.name) || $('#pname').value || 'أنا').trim() || 'أنا'; }
 function peerSelf(r) { const me = r.peers().find(p => p.sameTab); return me ? me.peer : null; }
 
 // ---------- host ----------
-async function hostRoom() {
-  const code = Array.from({length: 4}, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+async function hostRoom(given) {
+  const code = given || (NET.fb ? await netFreeCode() : Array.from({length: 4}, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join(''));
   let r;
   try { r = await NET.room.join('dm-' + code); } catch (e) { return toastErr('ما قدرت أفتح غرفة: ' + (e.code || e.message || '')); }
   Object.assign(NET, {r, mode: 'host', code, events: [], evSeq: 0, pending: null});
@@ -5277,7 +5298,7 @@ function hostLobby() {
     s.append(h('h3', {}, 'غرفة أونلاين'),
       h('p', {}, 'خلّي صديقك يفتح نفس رابط اللعبة، يضغط "ادخل غرفة" ويكتب هذا الرمز:'),
       h('div', {style: 'font-family:var(--f-display);font-size:46px;letter-spacing:8px;color:var(--gold);text-align:center;direction:ltr'}, NET.code.toUpperCase()),
-      h('a', {class: 'btn wa', target: '_blank', rel: 'noopener', href: waLink(`تعال نلعب كشتة أونلاين 🃏 افتح الرابط، اضغط "ادخل غرفة" واكتب الرمز ${NET.code.toUpperCase()}: ${GAME_URL}`)}, h('span', {class: 'wa-ic', 'aria-hidden': 'true'}, '💬'), ' ادعو صديق عبر واتساب بالرمز'),
+      h('a', {class: 'btn wa', target: '_blank', rel: 'noopener', href: waLink(NET.fb ? `تعال نلعب ديل مون بكشتة 🃏\nكود الغرفة: ${NET.code}\n${netLink(NET.code)}` : `تعال نلعب كشتة أونلاين 🃏 افتح الرابط، اضغط "ادخل غرفة" واكتب الرمز ${NET.code.toUpperCase()}: ${GAME_URL}`)}, h('span', {class: 'wa-ic', 'aria-hidden': 'true'}, '💬'), ' ادعو صديق عبر واتساب بالرمز'),
       h('h4', {style: 'margin:0'}, 'اللاعبون في الغرفة'), list,
       h('div', {class: 'fld'}, h('span', {class: 'hint'}, 'لاعبين آليين إضافيين'), seg), info,
       h('div', {class: 'btnrow'}, start, h('button', {type: 'button', class: 'btn', onclick: () => { close(); leaveRoom(); }}, 'إلغاء')));
@@ -5427,8 +5448,8 @@ function onHostPeers(ch) {
 setInterval(() => { if (NET.mode === 'host' && NET.r && G) onHostPeers({peers: NET.r.peers()}); }, 4000);
 
 // ---------- client ----------
-async function joinRoom() {
-  const code = (await askCode() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+async function joinRoom(given) {
+  const code = (given || await askCode() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   if (!code) return;
   let r;
   try { r = await NET.room.join('dm-' + code); } catch (e) { return toastErr('ما قدرت أدخل الغرفة: ' + (e.code || e.message || '')); }
@@ -5442,7 +5463,7 @@ function askCode() {
   return modal((s, close) => {
     const inp = h('input', {id: 'codeIn', maxlength: '6', autocomplete: 'off', autocapitalize: 'characters', inputmode: 'text',
       style: 'font-size:30px;text-align:center;letter-spacing:6px;direction:ltr;background:rgba(0,0,0,.4);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px;font-family:inherit'});
-    s.append(h('h3', {}, 'ادخل غرفة'), h('p', {class: 'hint'}, 'اكتب رمز الغرفة اللي يطلع عند صديقك (4 حروف).'), inp,
+    s.append(h('h3', {}, 'ادخل غرفة'), h('p', {class: 'hint'}, NET.fb ? 'اكتب كود الغرفة اللي يطلع عند صديقك (4 أرقام).' : 'اكتب رمز الغرفة اللي يطلع عند صديقك (4 حروف).'), inp,
       h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn primary', onclick: () => close(inp.value.trim())}, 'ادخل'), h('button', {type: 'button', class: 'btn', onclick: () => close(null)}, 'إلغاء')));
     setTimeout(() => inp.focus(), 50);
   });
@@ -6775,15 +6796,56 @@ function launchTawla(opt) { afkReset(); haltOthers('tawla'); twBusy = false; twA
   const names = botNames();
   const bn = names[0];
   TW_ID++;
-  TG = {mode: opt.mode, diff: opt.mode === 'tutorial' ? 'easy' : opt.diff, slow: !!opt.slow,
+  // 8.5 with a friend: both phones play from the bottom; the friend's moves come mirrored (the host's board is the shared one)
+  let TS = null, fr = null;
+  if (opt.net) { const N = opt.net, id = TW_ID, op = N.order.find(u => u !== N.R.uid), x = N.room.seats[op] || {n: 'صاحبك'};
+    fr = {name: x.n, av: x.av, human: false, remote: true, friend: true};
+    TS = {net: N, me: N.me, op: 1 - N.me, slow: false, rnd: netRng(N.seed), aliveFn: () => !!TG && TG.ts === TS && id === TW_ID, say: t => toast(t, 2000)};
+    TS.pl = N.me === 0 ? [{name: PROFILE.name, human: true}, fr] : [fr, {name: PROFILE.name, human: true}]; }
+  TG = {mode: opt.mode, diff: opt.mode === 'tutorial' ? 'easy' : opt.diff, slow: !!opt.slow, ts: TS,
     target: opt.one || opt.mode === 'normal' ? 5 : 1,   // a tournament duel (opt.one) is a normal game to 5
     score: [0, 0], game: 0,
-    pl: giveSkins([{name: PROFILE.name || 'أنا', av: myAvatar(), human: true}, {name: bn, av: botAv(bn, 2), human: false}]),
+    pl: giveSkins([{name: PROFILE.name || 'أنا', av: myAvatar(), human: true}, fr || {name: bn, av: botAv(bn, 2), human: false}]),
     s: null, cur: 0, dice: null, rem: [], turnDice: null, sel: null, made: [], undo: [], phase: 'idle', last: null, hint: new Set(), tips: new Set(), clock: null};
   $('#splash').hidden = true; twEl.hidden = false;
+  if (TS) TS.net.begin(TS, () => { TW_ID++; TG = null; twEl.hidden = true; twTip(null); backToShell(); });
   twNewGame();
 }
-function twLeave() { TW_ID++; TG = null; twEl.hidden = true; twTip(null); backToShell(); }
+// the friend's side: my board ↔ the shared board (the host's) is a mirror (point i ↔ 23 − i)
+const twMir = m => ({from: m.from === 'bar' ? 'bar' : 23 - m.from, to: m.to === 'off' ? 'off' : 23 - m.to, d: m.d, hit: !!m.hit});
+const twAbs = m => TG.ts.me === 0 ? {from: m.from, to: m.to, d: m.d, hit: !!m.hit} : twMir(m);   // mine, written on the shared board
+const twLoc = m => TG.ts.me === 0 ? m : twMir(m);   // the shared board's move, on mine
+// my turn online: everything I do goes out as one record when the turn ends
+function twNetMine() {
+  const TS = TG.ts; if (!TS) return;
+  mgTurn(TS, TS.me, () => new Promise(res => { TG.sendTurn = a => { TG.sendTurn = null; res(a); }; }), async () => null);
+}
+function twNetSend(extra) { if (TG && TG.sendTurn) TG.sendTurn(Object.assign({dice: TG.turnDice, moves: TG.made.map(twAbs)}, extra || {})); }
+// the friend's turn: his record comes, his dice show and his checkers move
+async function twNetTheirs() {
+  const TS = TG.ts, id = TW_ID, tk = TG.turnTok;
+  for (;;) {
+    const a = await mgTurn(TS, TS.op, () => null, async () => { const d = [twRoll(), twRoll()], L = TWE.diceList(d[0], d[1]); const sq = TWE.choose(TG.s, 1, L, d, 'normal'); return {dice: d, moves: sq.map(m => TS.me === 0 ? {from: m.from, to: m.to, d: m.d, hit: !!m.hit} : twMir(m))}; });
+    if (!TG || id !== TW_ID || TG.turnTok !== tk) return;
+    if (a && a.offer) {   // he offers: give up the round now?
+      const yes = await mgTurn(TS, TS.me, () => twAskMe(a.offer), async () => false);
+      if (!TG || id !== TW_ID) return;
+      if (yes) return twGameOver(1, a.offer === 'malas' ? 2 : 1, a.offer);
+      twToast('رفضت العرض، نكمل 💪'); continue;
+    }
+    if (a && a.answer != null) continue;
+    const d = a && a.dice || [twRoll(), twRoll()];
+    TG.dice = d; TG.turnDice = d; TG.rem = TWE.diceList(d[0], d[1]); TG.turnStart = TWE.clone(TG.s);
+    TG.thr = {who: 1, anim: !TG.fromOpen, list: (d[0] === d[1] ? [d[0], d[0], d[0], d[0]] : d).map(twThrowRec)}; TG.fromOpen = false; TG.phase = 'move'; SFX.play('dice'); twRender();
+    await twDelay(650, id);
+    for (const m of (a && a.moves) || []) { if (!TG || TG.turnTok !== tk) return; twDo(twLoc(m)); twRender(); await twDelay(620, id); }
+    if (TWE.won(TG.s, 1)) return twGameOver(1);
+    if (!(a && a.moves && a.moves.length)) { twToast(`${TG.pl[1].name} ما عنده حركة`); await twDelay(800, id); }
+    await twDelay(250, id);
+    return twEndTurn(tk);
+  }
+}
+function twLeave() { const on = TG && TG.ts; TW_ID++; TG = null; twEl.hidden = true; twTip(null); if (on) { if (NET_CUR) { NET_CUR.N.stop(); NET_CUR = null; } netQuit(); } backToShell(); }
 function twMoveMs() { return TG.slow ? 20000 : 10000; }
 
 async function twNewGame() {
@@ -6797,10 +6859,12 @@ async function twNewGame() {
   let a, b;
   for (;;) {
     TG.open = [null, null]; TG.openThr = [null, null]; TG.phase = 'open'; twRender();
-    a = await new Promise(res => { TG.openRoll = () => { twClockStop(); TG.openRoll = null; res(twRoll()); }; twClockStart(() => TG.openRoll && TG.openRoll()); });
+    let ob = null;
+    if (TG.ts) { const x = 1 + Math.floor(TG.ts.rnd() * 6), y = 1 + Math.floor(TG.ts.rnd() * 6); a = TG.ts.me === 0 ? x : y; ob = TG.ts.me === 0 ? y : x; await twDelay(900, id); }
+    else a = await new Promise(res => { TG.openRoll = () => { twClockStop(); TG.openRoll = null; res(twRoll()); }; twClockStart(() => TG.openRoll && TG.openRoll()); });
     TG.open[0] = a; TG.openThr[0] = twThrowRec(a); SFX.play('dice'); twRender();
     await twDelay(800, id);
-    b = twRoll(); TG.open[1] = b; TG.openThr[1] = twThrowRec(b); SFX.play('dice'); twRender();
+    b = TG.ts ? ob : twRoll(); TG.open[1] = b; TG.openThr[1] = twThrowRec(b); SFX.play('dice'); twRender();
     await twDelay(1300, id);
     if (a !== b) break;
     twToast('تعادل! ارموا مرة ثانية 🎲'); await twDelay(900, id);
@@ -6816,7 +6880,7 @@ function twStartTurn(dice) {
   if (TG.cur === 0 && TG.offCD) TG.offCD--;
   if (TG.cur === 1 && TG.botCD) TG.botCD--;
   TG.dice = null; TG.rem = []; TG.made = []; TG.undo = []; TG.sel = null;
-  if (dice) { TG.blockedLast = false; return twGotDice(dice); }
+  if (dice) { TG.blockedLast = false; if (TG.ts) { if (TG.cur === 0) twNetMine(); else { TG.phase = 'roll'; twRender(); return twNetTheirs(); } } return twGotDice(dice); }
   // a checker is hit and the other player's home is fully closed: nothing to roll for, the turn passes by itself
   if (TG.s && TG.s.bar[TG.cur] && [1, 2, 3, 4, 5, 6].every(d => !TWE.one(TG.s, TG.cur, 'bar', d))) {
     const tk = TG.turnTok, id = TW_ID; TG.phase = 'blocked';
@@ -6824,7 +6888,8 @@ function twStartTurn(dice) {
     return;
   }
   TG.blockedLast = false; TG.phase = 'roll'; twRender();
-  if (TG.cur === 0) { twClockStart(() => twDoRoll()); twTip('roll'); }
+  if (TG.cur === 0) { twClockStart(() => twDoRoll()); twTip('roll'); if (TG.ts) twNetMine(); }
+  else if (TG.ts) twNetTheirs();
   else twBot();
 }
 function twDoRoll() { if (!TG || TG.phase !== 'roll') return; twGotDice([twRoll(), twRoll()]); }
@@ -6839,7 +6904,7 @@ async function twGotDice(d) {
     const tk = TG.turnTok; await twDelay(1400, id); return twEndTurn(tk);
   }
   if (TG.cur === 0) { TG.clockRest = null; TG.clockReset = false; twClockStart(() => twAuto()); if (TG.s.bar[0]) twTip('bar'); else twTip('move'); if (TWE.allHome(TG.s, 0)) twTip('off'); }
-  else twBot();
+  else if (!TG.ts) twBot();
 }
 // legal next single moves = first steps of the longest sequences
 function twLegal() {
@@ -6895,6 +6960,7 @@ async function twAutoInner() {
 }
 function twEndTurn(tk) {
   if (!TG || (tk != null && tk !== TG.turnTok)) return;
+  if (TG.ts && TG.cur === 0) twNetSend();   // my turn goes to my friend
   twClockStop();
   TG.cur = 1 - TG.cur; TG.phase = 'roll';
   twStartTurn();
@@ -6919,6 +6985,7 @@ async function twBot() {
 }
 async function twGameOver(w, forced, how) {
   const id = TW_ID;
+  if (TG.ts && w === 0 && !forced) twNetSend();   // my winning moves go out first
   twClockStop(); TG.phase = 'over';
   const pts = forced || TWE.points(TG.s, w); TG.score[w] += pts; TG.game++; TG.lastWin = w;
   twRender();
@@ -6949,8 +7016,9 @@ async function twGameOver(w, forced, how) {
       TG.mode === 'tutorial' ? h('p', {class: 'hint', style: 'text-align:center'}, 'خلصت الجولة التعليمية! هسه جرّب لعبة عادية لحد 5 نقاط.') : '',
       rewardEl() || '',
       h('div', {class: 'btnrow', style: 'justify-content:center'},
-        chEndBtn(close, h('button', {type: 'button', class: 'btn primary', onclick: () => { close(); launchTawla({mode: TG.mode, diff: TG.diff, slow: TG.slow}); }}, 'العب مرة ثانية')),
-        h('button', {type: 'button', class: 'btn', onclick: () => { close(); twLeave(); }}, 'الشاشة الرئيسية')));
+        TG.ts ? (TG.ts.net.host ? h('button', {type: 'button', class: 'btn primary', onclick: () => netAgain()}, 'جولة ثانية ويه صاحبك') : h('p', {class: 'hint', style: 'text-align:center;width:100%'}, 'استنى المضيف 👑 يبدي جولة ثانية…'))
+          : chEndBtn(close, h('button', {type: 'button', class: 'btn primary', onclick: () => { close(); launchTawla({mode: TG.mode, diff: TG.diff, slow: TG.slow}); }}, 'العب مرة ثانية')),
+        h('button', {type: 'button', class: 'btn', onclick: () => { close(); twLeave(); }}, TG.ts ? 'اطلع من الغرفة' : 'الشاشة الرئيسية')));
   }, {dismiss: false});
 }
 // ---------- "تفلش؟" offers: when one player is far ahead he may offer the other to give up the round now ----------
@@ -6998,9 +7066,17 @@ async function twOffer(k) {
   if (!TG || TG.cur !== 0 || twBusy || TG.offCD || !twCanOffer(0, k)) return;
   const id = TW_ID; twClockStop(); twBusy = true; twBusyAt = Date.now();
   twToast(`عرضت على ${TG.pl[1].name}: تفلش ${k === 'malas' ? 'ملص' : 'أوين'}؟`);
+  let ok;
+  if (TG.ts) {   // online: he answers on his phone
+    TG.sendTurn && TG.sendTurn({offer: k});
+    ok = await mgTurn(TG.ts, TG.ts.op, () => null, async () => twHopeless(1, k));
+    twBusy = false; if (!TG || id !== TW_ID) return;
+    if (!ok) twNetMine();   // he said no: my turn goes on (a new record)
+  } else {
   await twDelay(1500, id).catch(() => {});
   twBusy = false; if (!TG || id !== TW_ID) return;
-  const ok = twHopeless(1, k);   // the device accepts only when it has no real hope
+  ok = twHopeless(1, k);   // the device accepts only when it has no real hope
+  }
   if (ok) { twToast(`${TG.pl[1].name} وافق 🤝`); return twGameOver(0, k === 'malas' ? 2 : 1, k); }
   TG.offCD = 3; twToast(`${TG.pl[1].name} رفض، نكمل 😤`); twRender();
   if (TG.phase === 'roll') twClockStart(() => twDoRoll()); else if (TG.phase === 'move') twClockStart(() => twAuto());
@@ -7048,6 +7124,7 @@ function twToast(t) { toast(t, 1600); }
 let twSayAt = 0;
 function twSay(seat, i) { tableSay(twEl, `.ava[data-tw="${seat}"]`, seat, i); }
 function twBotSay(stkIdx) {
+  if (TG && TG.ts) return;
   if (Math.random() > .55 || Date.now() - twSayAt < 4000) return;
   twSayAt = Date.now();
   const i = stkIdx[Math.floor(Math.random() * stkIdx.length)];
@@ -7323,6 +7400,7 @@ function twDie(n, cls, sk) {
 window.addEventListener('resize', () => { if (TG && !twEl.hidden) twRender(); });
 window.__twdbg = () => TG; window.__twGot = d => twGotDice(d);
 window.__twAuto = () => twAuto(); window.__twStart = () => twStartTurn();
+window.__tw = () => TG; window.__twStep = () => { if (!TG || TG.cur !== 0) return; if (TG.phase === 'roll') twDoRoll(); else if (TG.phase === 'move') twAuto(); };
 
 // ===================== DOMINO (الدومنة العراقية) =====================
 // 28 tiles 0-0 … 6-6, 7 each. 2-3 players draw from the stock when stuck; 4 players (or 2v2) play it all out.
@@ -7332,10 +7410,11 @@ const DOME = (() => {
   const all = () => { const t = []; for (let a = 0; a <= 6; a++) for (let b = a; b <= 6; b++) t.push([a, b]); return t; };
   const pip = t => t[0] + t[1];
   const isD = t => t[0] === t[1];
-  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  function deal(n) {
-    const t = shuffle(all()); const hands = [];
+  const shuffle = (a, r = Math.random) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function deal(n, r, rot) {   // 8.5 online: the room's seed deals, and every phone turns the table so its player sits at the bottom
+    const t = shuffle(all(), r); let hands = [];
     for (let p = 0; p < n; p++) hands.push(t.splice(0, 7));
+    if (rot) hands = hands.map((_, j) => hands[(j + rot) % n]);
     return {hands, yard: n === 4 ? [] : t, center: null, L: [], R: [], U: [], D: [], endL: null, endR: null, endU: null, endD: null, spin: false, passes: 0, lacks: hands.map(() => new Set())};
   }
   const sides = (st, t) => {
@@ -7434,18 +7513,30 @@ const dmDelay = (ms, id) => new Promise((res, rej) => setTimeout(() => id === DM
 function launchDomino(opt) { afkReset(); haltOthers('domino');
   DM_ID++;
   const n = opt.mode === 'team' ? 4 : opt.mode === 'tutorial' ? 3 : opt.count;
-  const names = botNames();
+  let names = botNames(), TS = null;
   const pl = [{name: PROFILE.name || 'أنا', av: myAvatar(), human: true}];
+  if (opt.net) {   // 8.5 with friends: the seats by the room's order; my seat is at the bottom (the others turn with me)
+    const N = opt.net, id = DM_ID, seats = N.room.seats || {}, r = netRng(N.seed ^ 0x2f6b), bn = mgShuffle(BOT_NAMES.slice().sort(), r).filter(x => !N.order.some(u => seats[u] && seats[u].n === x));
+    const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
+    TS = {net: N, me: N.me, pl: A, slow: false, aliveFn: () => !!DG && DG.ts === TS && id === DM_ID, say: t => toast(t, 2000)};
+    for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend}); }
+  } else
   for (let i = 1; i < n; i++) pl.push({name: names[i - 1] + (opt.mode === 'team' && i === 2 ? ' 🤝' : ''), av: botAv(names[i - 1], i), human: false});
   giveSkins(pl);
   const v = opt.v || (typeof PLAY_VAR !== 'undefined' && DM_VARS[PLAY_VAR] ? PLAY_VAR : 'iraqi');
-  DG = {v, mode: opt.mode, diff: opt.mode === 'tutorial' ? 'easy' : opt.diff, slow: !!opt.slow, n, teams: opt.mode === 'team', pl,
+  DG = {ts: TS, rnd: TS ? netRng(opt.net.seed) : Math.random, v, mode: opt.mode, diff: opt.mode === 'tutorial' ? 'easy' : opt.diff, slow: !!opt.slow, n, teams: opt.mode === 'team', pl,
     target: opt.mode === 'tutorial' ? 0 : v === 'fives' ? (opt.one ? 150 : +opt.target || (typeof NEXT_AZT !== 'undefined' && NEXT_AZT) || PROFILE.set.azt || 150) : opt.one || opt.mode === 'quick' || opt.quick ? 101 : 151, score: new Array(n).fill(0), round: 0, rounds: v === 'tayara' ? (opt.mode === 'tutorial' ? 1 : opt.one ? (opt.tay === 10 ? 10 : 7) : opt.quick || opt.mode === 'quick' ? 7 : 10) : 0, one: false, flyLim: opt.one ? (opt.tay === 10 ? 3 : 2) : opt.mode === 'quick' ? 2 : 3, total: new Array(n).fill(0), hist: Array.from({length: n}, () => []), xs: new Array(n).fill(0), st: null, cur: 0, sel: null, phase: 'idle', clock: null, tips: new Set(), lastWin: null, last: null};   // a tournament duel (opt.one): العراقية to 101, ازنيف to 150, الطيرة as chosen: 7 rounds flying at 2, or 10 rounds flying at 3
   if (typeof NEXT_AZT !== 'undefined') NEXT_AZT = 0;
   $('#splash').hidden = true; dmEl.hidden = false;
+  if (TS) TS.net.begin(TS, () => { DM_ID++; DG = null; dmEl.hidden = true; $('#tipBox').hidden = true; backToShell(); });
   dmNewRound();
 }
-function dmLeave() { DM_ID++; DG = null; dmEl.hidden = true; $('#tipBox').hidden = true; backToShell(); }
+function dmLeave() { const on = DG && DG.ts; DM_ID++; DG = null; dmEl.hidden = true; $('#tipBox').hidden = true; if (on) { if (NET_CUR) { NET_CUR.N.stop(); NET_CUR = null; } netQuit(); } backToShell(); }
+// 8.5 a decision of seat p (on my table): mine here, a friend's on his phone, the device's on the host's — all through the room's log
+const dmA = p => (p + DG.ts.me) % DG.n;
+function dmDecide(p, human, bot) { if (!DG.ts) return p === 0 ? human() : bot(); return mgTurn(DG.ts, dmA(p), human, bot); }
+const dmSame = (a, b) => a && b && ((a[0] === b[0] && a[1] === b[1]) || (a[0] === b[1] && a[1] === b[0]));
+const dmMv = (st, q, x) => x && x.t ? DOME.playable(st, q).find(o => dmSame(o.t, x.t) && o.side === x.side) || null : null;   // a move that came as numbers → the tile in his hand
 const dmTeam = p => DG.teams ? p % 2 : p;
 const dmScoreOf = p => DG.v === 'tayara' ? DG.total[p] : DG.teams ? DG.score[p % 2] : DG.score[p];
 
@@ -7453,7 +7544,7 @@ async function dmNewRound() {
   const id = DM_ID; if (DG) DG.nexting = false;
   // a hand with 5 doubles, or 6 tiles of the same number, voids the deal: the round is dealt again (the game goes on)
   const voidHand = hd => hd.filter(t => DOME.isD(t)).length >= 5 || [0, 1, 2, 3, 4, 5, 6].some(n => hd.filter(t => t[0] === n || t[1] === n).length >= 6);
-  let st = DOME.deal(DG.n), voided = 0; st.fives = DG.v === 'fives'; st.tay = DG.v === 'tayara';
+  let st = DOME.deal(DG.n, DG.rnd, DG.ts && DG.ts.me), voided = 0; st.fives = DG.v === 'fives'; st.tay = DG.v === 'tayara';
   // the tiles are dealt and seen for 2 s (nobody plays), then a note says why the round is dealt again
   while (DG.v === 'iraqi' && st.hands.some(voidHand) && voided < 20) {
     voided++;
@@ -7464,7 +7555,7 @@ async function dmNewRound() {
     const why = five ? 'عندك 5 چفت' : 'عندك 6 أحجار من نوع واحد', whyO = five ? 'أحد اللاعبين عنده 5 چفت' : 'أحد اللاعبين عنده 6 أحجار من نوع واحد';
     await modal((s, close) => { s.append(h('h3', {style: 'text-align:center'}, '🔄 الجولة راح تنعاد'), h('p', {style: 'text-align:center;font-size:17px'}, `الجولة ستُعاد لأن ${who === 0 ? why : whyO}`), h('div', {class: 'autobar'}, h('i', {})), h('button', {type: 'button', class: 'btn gobtn', onclick: () => close()}, 'تمام')); setTimeout(close, 3000); }, {dismiss: false});
     if (!DG || id !== DM_ID) return;
-    st = DOME.deal(DG.n); st.fives = DG.v === 'fives';
+    st = DOME.deal(DG.n, DG.rnd, DG.ts && DG.ts.me); st.fives = DG.v === 'fives';
   }
   DG.st = st; DG.sel = null; DG.round++; DG.last = null; DG.lastPlacer = null; DG.own = {}; DG.slams = new Array(DG.n).fill(3); DG.slamArm = false; DG.anim = null;
   SFX.play('shufdom');
@@ -7496,8 +7587,8 @@ async function dmTurnInner() {
   if (DG.first && st.center == null) opts = opts.filter(o => o.t === DG.first);
   // stuck: draw from the stock (2-3 players) until something fits
   while (!opts.length && st.yard.length) {
-    if (p === 0) { const k = await dmPickStock(); if (stale()) return; st.hands[0].push(st.yard.splice(k, 1)[0]); }
-    else st.hands[p].push(st.yard.pop());
+    const k = await dmDecide(p, () => dmPickStock(), async () => st.yard.length - 1); if (stale()) return;
+    st.hands[p].push(st.yard.splice(k >= 0 && k < st.yard.length ? k : st.yard.length - 1, 1)[0]);
     SFX.play('tile', .6);
     if (p === 0) dmTip('draw');
     dmRender(); await dmDelay(p === 0 ? 420 : 300, id); if (stale()) return;
@@ -7512,16 +7603,25 @@ async function dmTurnInner() {
   }
   DG.phase = 'turn';
   dmRender();
+  const botMv = () => { let mv = DOME.choose(st, p, DG.diff, DG.teams, DG.n, DG.v === 'fives'); if (DG.first && !st.center) mv = opts[0]; return mv; };
+  const botSlam = mv => DG.mode !== 'tutorial' && (DOME.isD(mv.t) ? Math.random() < .35 : st.hands[p].length === 1 ? Math.random() < .6 : Math.random() < .06);
+  if (DG.ts) {   // online: the move comes through the log (mine too: it is put down when it comes back)
+    const a = await dmDecide(p, () => new Promise(res => { DG.sendMv = res; dmClock(() => dmAuto()); dmTip(st.center ? 'play' : 'first'); }),
+      async () => { await dmDelay(800, id); const mv = botMv(); return mv ? {t: mv.t, side: mv.side, slam: botSlam(mv)} : null; });
+    DG.sendMv = null; if (!DG || id !== DM_ID || DG.cur !== p || DG.phase !== 'turn') return;
+    return dmDo(p, dmMv(st, p, a) || botMv() || opts[0], {slam: !!(a && a.slam), net: true});
+  }
   if (p === 0) { dmClock(() => dmAuto()); dmTip(st.center ? 'play' : 'first'); return; }
   await dmDelay(800 + (window.cupHoldMs ? window.cupHoldMs() : 0), id); if (stale()) return;   // a tournament player who hasn't come in yet: his first turns wait for him (a minute at most)
-  let mv = DOME.choose(st, p, DG.diff, DG.teams, DG.n, DG.v === 'fives');
-  if (DG.first && !st.center) mv = opts[0];
-  if (mv) dmDo(p, mv, {slam: DG.mode !== 'tutorial' && (DOME.isD(mv.t) ? Math.random() < .35 : st.hands[p].length === 1 ? Math.random() < .6 : Math.random() < .06)});
+  const mv = botMv();
+  if (mv) dmDo(p, mv, {slam: botSlam(mv)});
 }
 const dmLog = (...a) => { if (DG) { (DG.log = DG.log || []).push(a.join(' ')); if (DG.log.length > 400) DG.log.shift(); } };
 const dmKey = t => Math.min(t[0], t[1]) + '-' + Math.max(t[0], t[1]);
 function dmDo(p, mv, o = {}) {
-  const st = DG.st; dmClockStop(); if (!mv || DG.phase !== 'turn' || DG.cur !== p) return;
+  const st = DG.st; if (!mv || DG.phase !== 'turn' || DG.cur !== p) return;
+  if (DG.ts && p === 0 && !o.net) { const f = DG.sendMv; if (f) { DG.sendMv = null; dmClockStop(); DG.sel = null; f(mv.fly ? {fly: {t: mv.t, side: mv.side}} : {t: mv.t, side: mv.side, slam: !!o.slam}); } return; }   // online: my move goes out first
+  dmClockStop();
   DG.phase = 'played'; DG.tk++; dmLog('play', p, mv.t.join('-'), mv.side);
   const slam = !!o.slam;   // power slams are unlimited: hold a tile 2 s
   DG.own[dmKey(mv.t)] = p;   // each tile on the table keeps its owner's set
@@ -7541,7 +7641,7 @@ function dmDo(p, mv, o = {}) {
   dmRender();
   if (DG.reached != null) { dmRender(); return setTimeout(() => DG && id === DM_ID && dmRoundOver(p, true), dur + 700); }
   if (!st.hands[p].length) return DG.v === 'tayara' ? dmTayOver(p, 'out') : dmRoundOver(p);
-  if (p !== 0 && DOME.isD(mv.t) && Math.random() < .25) dmBotSay(p, [10, 2, 17, 21]);
+  if (p !== 0 && !DG.pl[p].friend && DOME.isD(mv.t) && Math.random() < .25) dmBotSay(p, [10, 2, 17, 21]);
   dmNext();
 }
 async function dmNext() { const id = DM_ID; if (DG.nexting) { dmLog('next-dup'); return; } DG.nexting = true; DG.cur = (DG.cur + 1) % DG.n; await dmDelay(DG.anim ? Math.max(250, DG.anim.dur + 120 - (performance.now() - DG.anim.t0)) : 250, id).catch(() => {}); if (DG && id === DM_ID) { DG.nexting = false; dmTurn(); } }
@@ -7620,8 +7720,9 @@ function dmMatchEnd(finalW, id, o = {}) {
       DG.mode === 'tutorial' ? h('p', {class: 'hint', style: 'text-align:center'}, 'خلصت الجولة التعليمية! هسه جرّب لعبة عادية لحد 151.') : '',
       rewardEl() || '',
       h('div', {class: 'btnrow', style: 'justify-content:center'},
-        chEndBtn(close, h('button', {type: 'button', class: 'btn primary', onclick: () => { close(); launchDomino({mode: DG.mode, diff: DG.diff, slow: DG.slow, count: DG.n, v: DG.v}); }}, 'العب مرة ثانية')),
-        h('button', {type: 'button', class: 'btn', onclick: () => { close(); dmLeave(); }}, 'الشاشة الرئيسية')));
+        DG.ts ? (DG.ts.net.host ? h('button', {type: 'button', class: 'btn primary', onclick: () => netAgain()}, 'جولة ثانية ويه الربع') : h('p', {class: 'hint', style: 'text-align:center;width:100%'}, 'استنى المضيف 👑 يبدي جولة ثانية…'))
+          : chEndBtn(close, h('button', {type: 'button', class: 'btn primary', onclick: () => { close(); launchDomino({mode: DG.mode, diff: DG.diff, slow: DG.slow, count: DG.n, v: DG.v}); }}, 'العب مرة ثانية')),
+        h('button', {type: 'button', class: 'btn', onclick: () => { close(); dmLeave(); }}, DG.ts ? 'اطلع من الغرفة' : 'الشاشة الرئيسية')));
   }, {dismiss: false});
 }
 // ---------- الطيرة ----------
@@ -7655,8 +7756,9 @@ function dmTayPlace(q, mv) {
   DG.anim = {p: q, key: mv.side === 'C' ? 'C' : mv.side + DG.last.k, slam: false, from: null, t0: performance.now(), dur: 560};
   setTimeout(() => { try { SFX.play('tile'); } catch (e) {} }, 540);
 }
-function dmTayDoFly(q, mv) {
+function dmTayDoFly(q, mv, net) {
   if (!DG || (q === 0 && (DG.cur !== 0 || DG.phase !== 'turn'))) return;
+  if (DG.ts && q === 0 && !net) { const f = DG.sendMv; if (f) { DG.sendMv = null; dmClockStop(); f({fly: {t: mv.t, side: mv.side}}); } return; }
   dmClockStop(); DG.phase = 'played'; DG.tk = (DG.tk || 0) + 1; DG.sel = null;
   dmTayPlace(q, mv); dmRender();
   try { SFX.play('malas'); dmSay(q, '🕊️ طيرة!'); } catch (e) {}
@@ -7671,8 +7773,8 @@ async function dmTayTurn() {
   if (st.center && !st.yard.length && DG.pl.every((_, q) => !dmTayOpts(q).length)) return dmTayOver(null, 'lock');
   let opts = dmTayOpts(p), drawn = 0;
   while (!opts.length && st.yard.length && drawn < 3) {   // one tile at a time, at most 3
-    if (p === 0) { const k = await dmPickStock(); if (stale()) return; st.hands[0].push(st.yard.splice(k, 1)[0]); }
-    else st.hands[p].push(st.yard.pop());
+    const k = await dmDecide(p, () => dmPickStock(), async () => st.yard.length - 1); if (stale()) return;
+    st.hands[p].push(st.yard.splice(k >= 0 && k < st.yard.length ? k : st.yard.length - 1, 1)[0]);
     drawn++; SFX.play('tile', .6); dmRender(); await dmDelay(p === 0 ? 420 : 300, id); if (stale()) return;
     opts = dmTayOpts(p);
   }
@@ -7685,25 +7787,35 @@ async function dmTayTurn() {
     return dmNext();
   }
   DG.phase = 'turn'; dmRender();
+  const botAct = () => { const f = dmTayFly(p); if (f && (DG.diff !== 'easy' || Math.random() < .6)) return {fly: {t: f.t, side: f.side}}; let mv = DOME.choose(st, p, DG.diff, DG.teams, DG.n, false); if (DG.first && !st.center) mv = opts[0]; return mv ? {t: mv.t, side: mv.side, slam: Math.random() < .05} : null; };
+  if (DG.ts) {
+    const tip = !st.center ? 'tfirst' : dmTayFly(0) ? 'tfly' : ['L', 'R', 'U', 'D'].some(k => !st[k].length) ? 'tfour' : 'tplay';
+    const a = await dmDecide(p, () => new Promise(res => { DG.sendMv = res; dmTip(tip); dmClock(() => dmAuto()); }), async () => { await dmDelay(800, id); return botAct(); });
+    DG.sendMv = null; if (!DG || id !== DM_ID || DG.cur !== p || DG.phase !== 'turn') return;
+    if (a && a.fly) { const f = dmMv(st, p, a.fly); if (f) return dmTayDoFly(p, f, true); }
+    return dmDo(p, dmMv(st, p, a) || opts[0], {slam: !!(a && a.slam), net: true});
+  }
   if (p === 0) { dmTip(!st.center ? 'tfirst' : dmTayFly(0) ? 'tfly' : ['L', 'R', 'U', 'D'].some(k => !st[k].length) ? 'tfour' : 'tplay'); dmClock(() => dmAuto()); return; }
   await dmDelay(800 + (window.cupHoldMs ? window.cupHoldMs() : 0), id); if (stale()) return;   // a tournament player who hasn't come in yet: his first turns wait for him (a minute at most)
-  const f = dmTayFly(p); if (f && (DG.diff !== 'easy' || Math.random() < .6)) return dmTayDoFly(p, f);
-  let mv = DOME.choose(st, p, DG.diff, DG.teams, DG.n, false);
-  if (DG.first && !st.center) mv = opts[0];
-  if (mv) dmDo(p, mv, {slam: Math.random() < .05});
+  const a = botAct(); if (!a) return;
+  if (a.fly) return dmTayDoFly(p, dmMv(st, p, a.fly));
+  dmDo(p, dmMv(st, p, a), {slam: a.slam});
 }
 // q helps p (who is stuck): play one of q's tiles for him, or give him a tile that cannot go down now
 async function dmTayHelp(q, p) {
   const st = DG.st, can = DOME.playable(st, q), give = st.hands[q].filter(t => !DOME.sides(st, t).length);
-  let act = null;
-  if (q === 0) { dmTip('thelp'); act = await dmTayAsk(p, can, give); }
-  else {
+  const botHelp = () => {
     const mate = DG.teams && q % 2 === p % 2;
-    if (can.length && (mate || !give.length || Math.random() < .25)) act = {play: can.sort((a, b) => DOME.pip(b.t) - DOME.pip(a.t))[0]};
-    else if (give.length) act = {give: give.sort((a, b) => DOME.pip(b) - DOME.pip(a))[0]};
-    else if (can.length) act = {play: can[0]};
-  }
+    if (can.length && (mate || !give.length || Math.random() < .25)) return {play: can.slice().sort((a, b) => DOME.pip(b.t) - DOME.pip(a.t))[0]};
+    if (give.length) return {give: give.slice().sort((a, b) => DOME.pip(b) - DOME.pip(a))[0]};
+    return can.length ? {play: can[0]} : null;
+  };
+  let act = await dmDecide(q, () => { dmTip('thelp'); return dmTayAsk(p, can, give); }, async () => botHelp());
   if (!DG) return 'over';
+  if (DG.ts && act) {   // it came as numbers: back to the real tile in his hand
+    if (act.give) act = {give: give.find(t => dmSame(t, act.give)) || give[0]}; else if (act.play) act = {play: can.find(o => dmSame(o.t, act.play.t) && o.side === act.play.side) || can[0]};
+    if (!act.give && !act.play) act = null;
+  }
   dmLog('help', q, p, act ? (act.give ? 'give ' + act.give.join('-') : 'play') : 'none');
   if (act && act.give) {
     st.hands[q].splice(st.hands[q].indexOf(act.give), 1); st.hands[p].push(act.give);
@@ -7719,7 +7831,7 @@ async function dmTayHelp(q, p) {
   // it adds up to the limit or less. He plays no more tiles (زق وطير / العب مكانه وطير)
   const left = DOME.handPips(st, q);
   if (st.hands[q].length && left <= DG.flyLim) {
-    const yes = q === 0 ? await confirmBox('🕊️ تطير هسه؟', `باقي بإيدك ${left} ${left === 1 ? 'نقطة' : 'نقاط'}، تكدر تطير بيهن بدون ما تلعب حجر.`, 'طيرة', 'لا') : DG.diff !== 'easy' || Math.random() < .6;
+    const yes = await dmDecide(q, () => confirmBox('🕊️ تطير هسه؟', `باقي بإيدك ${left} ${left === 1 ? 'نقطة' : 'نقاط'}، تكدر تطير بيهن بدون ما تلعب حجر.`, 'طيرة', 'لا'), async () => DG.diff !== 'easy' || Math.random() < .6);
     if (yes && DG) { DG.phase = 'played'; dmRender(); try { SFX.play('malas'); dmSay(q, '🕊️ طيرة!'); } catch (e) {} await dmDelay(900, DM_ID).catch(() => {}); if (DG) dmTayOver(q, 'fly'); return 'over'; }
   }
   return 'ok';
@@ -8248,6 +8360,8 @@ for (const ev of ['pointerup', 'pointercancel']) window.addEventListener(ev, e =
   if (DG) { if (DG.boardEl) DG.boardEl.classList.remove('dropzone'); dmRender(); }
 }, 60), true);
 
+window.__dm = () => DG; window.__dmStep = () => { if (DG && DG.cur === 0 && DG.phase === 'turn' && DG.sendMv) dmAuto(); };
+
 // ===================== 71 الخبيثة: ENGINE =====================
 // 2 decks + 2 jokers = 106 cards. 14 each, the starter 15. Draw (deck, or the last discard if you use it now), meld, discard.
 // First opening needs 71+; each later opening must beat the highest one so far (in 2v2: beat the other team; your partner then needs only 71).
@@ -8569,18 +8683,55 @@ function launchKhabitha(opt) { afkReset(); haltOthers('khabitha');
   const n = opt.mode === 'team' ? 4 : opt.mode === 'tutorial' ? 3 : opt.count;
   const names = botNames();
   const pl = [{name: PROFILE.name || 'أنا', av: myAvatar(), human: true}];
+  let TS = null;
+  if (opt.net) {   // 8.5 with friends: my seat at the bottom, the others turn with me; every turn ends by sending the whole table
+    const N = opt.net, id = KH_ID, seats = N.room.seats || {}, r = netRng(N.seed ^ 0x51a7), bn = mgShuffle(BOT_NAMES.slice().sort(), r).filter(x => !N.order.some(u => seats[u] && seats[u].n === x));
+    const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
+    TS = {net: N, me: N.me, pl: A, slow: false, aliveFn: () => !!KG && KG.ts === TS && id === KH_ID, say: t => toast(t, 2000)};
+    for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend}); }
+  } else
   for (let i = 1; i < n; i++) pl.push({name: names[i - 1] + (opt.mode === 'team' && i === 2 ? ' 🤝' : ''), av: botAv(names[i - 1], i), human: false});
   giveSkins(pl);
   const v = opt.v || (typeof PLAY_VAR !== 'undefined' && KH_VARS[PLAY_VAR] ? PLAY_VAR : 'k71');
   KH.setMode(KH_VARS[v] && KH_VARS[v].konkan ? 'konkan' : null);
-  KG = {v, mode: opt.mode, diff: opt.mode === 'tutorial' ? 'easy' : opt.diff, slow: !!opt.slow, n, teams: opt.mode === 'team', pl,
+  KG = {ts: TS, v, mode: opt.mode, diff: opt.mode === 'tutorial' ? 'easy' : opt.diff, slow: !!opt.slow, n, teams: opt.mode === 'team', pl,
     rounds: opt.quick ? 1 : opt.one || opt.mode === 'normal' || opt.mode === 'team' ? 7 : 1,   // a tournament duel (opt.one) is a normal 7-round game (it can end early)
     round: 0, total: new Array(n).fill(0), xs: new Array(n).fill(0),
     st: null, cur: 0, phase: 'idle', sel: new Set(), staged: [], mustUse: null, clock: null, tips: new Set(), log: '', starter: Math.floor(Math.random() * n)};
   $('#splash').hidden = true; khEl.hidden = false;
+  if (TS) TS.net.begin(TS, () => { KH_ID++; KG = null; khEl.hidden = true; $('#tipBox').hidden = true; backToShell(); });
   khNewRound();
 }
-function khLeave() { KH_ID++; KG = null; khEl.hidden = true; $('#tipBox').hidden = true; backToShell(); }
+function khLeave() { const on = KG && KG.ts; KH_ID++; KG = null; khEl.hidden = true; $('#tipBox').hidden = true; if (on) { if (NET_CUR) { NET_CUR.N.stop(); NET_CUR = null; } netQuit(); } backToShell(); }
+// ---- 8.5 online: seats on my table ↔ the room's seats; the table as numbers (card ids) and back ----
+const khA = p => (p + KG.ts.me) % KG.n, khL = a => (a - KG.ts.me + KG.n) % KG.n;
+function khCardsById() { const C = {}; let id = 0; for (let k = 0; k < 2; k++) for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) { C[id] = {id, r, s, j: false}; id++; } C[id] = {id, j: true}; id++; C[id] = {id, j: true}; return C; }
+function khSer() {
+  const st = KG.st, n = KG.n, A = arr => Array.from({length: n}, (_, a) => arr[khL(a)]), ids = cs => (cs || []).map(c => c.id), J = {};
+  Object.values(KG.cards).forEach(c => { if (c.j) J[c.id] = {as: c.as == null ? -1 : c.as, tk: c.tk ? 1 : 0}; });
+  const th = st.teamHigh || [0, 0];
+  return {deck: ids(st.deck), disc: ids(st.disc), hands: A(st.hands).map(ids), J,
+    table: st.table.map(t => ({o: khA(t.owner), c: ids(t.cards), m: {type: t.m.type, value: t.m.value, slots: t.m.slots.map(x => ({c: x.c.id, r: x.r == null ? -1 : x.r, s: x.s == null ? -1 : x.s}))}})),
+    opened: A(st.opened), openVal: A(st.openVal), highest: st.highest || 0, teamHigh: KG.ts.me % 2 ? [th[1], th[0]] : th, shuffles: st.shuffles || 0,
+    took: Object.fromEntries(Object.entries(KG.took || {}).map(([p, cs]) => ['s' + khA(+p), ids(cs)])), opT: A(st.openTok || []).map(x => x === KG.turnTok ? 1 : 0)};
+}
+function khLoad(x) {
+  const C = KG.cards, cs = a => (a || []).map(i => C[i]).filter(Boolean), n = KG.n, L = (arr, d) => Array.from({length: n}, (_, p) => { const v = (arr || [])[khA(p)]; return v == null ? d : v; });
+  Object.entries(x.J || {}).forEach(([id, v]) => { const c = C[id]; if (!c) return; if (v.as == null || v.as < 0) delete c.as; else c.as = v.as; if (v.tk) c.tk = true; else delete c.tk; });
+  const old = KG.st && KG.st.hands ? KG.st.hands[0] : null, hands = L(x.hands, []).map(cs);
+  if (old && old.length === hands[0].length && hands[0].every(c => old.includes(c))) hands[0] = old; else hands[0].sort(khSortFn);   // my own hand keeps my order
+  const th = x.teamHigh || [0, 0];
+  KG.st = {deck: cs(x.deck), disc: cs(x.disc), hands, opened: L(x.opened, false).map(Boolean), openVal: L(x.openVal, 0), highest: x.highest || 0, teamHigh: KG.ts.me % 2 ? [th[1] || 0, th[0] || 0] : [th[0] || 0, th[1] || 0], shuffles: x.shuffles || 0,
+    table: (x.table || []).map(t => ({owner: khL(t.o), cards: cs(t.c), m: {type: t.m.type, value: t.m.value, slots: (t.m.slots || []).map(q => ({c: C[q.c], r: q.r < 0 ? undefined : q.r, s: q.s < 0 ? undefined : q.s}))}})),
+    openTok: L(x.opT, 0).map(v => v ? KG.turnTok : 0)};
+  KG.took = {}; Object.entries(x.took || {}).forEach(([k, a]) => { KG.took[khL(+k.slice(1))] = cs(a); });
+}
+// the end of a turn that was played on this phone: the table goes to everybody (a seat the host plays for a friend who left stops here)
+function khNetEnd(end, c) {
+  if (!KG || !KG.ts || !KG.endNet) return false;
+  const f = KG.endNet; KG.endNet = null; f({st: khSer(), end, c: c ? c.id : null});
+  return !!KG.netFallback;
+}
 const khTeamOf = p => KG.teams ? p % 2 : p;
 function khNeed(p) {   // what this player has to lay down to open
   const st = KG.st, V = khV(), b = V.base;
@@ -8592,6 +8743,7 @@ function khNeed(p) {   // what this player has to lay down to open
 }
 function khVoidRound() {
   if (!KG || KG.phase === 'over') return;
+  if (khNetEnd('void')) return;
   const id = ++KH_ID; khClockStop(); KG.phase = 'over'; KG.ck = null; khRender();
   SFX.play('shuffle');
   modal((s, close) => {   // the round is void: everyone sees it, then the same round is dealt again
@@ -8603,9 +8755,20 @@ function khVoidRound() {
 async function khNewRound() {
   const id = KH_ID;
   KG.round++; KG.starter = KG.nextStarter != null ? KG.nextStarter : (KG.starter + 1) % KG.n; KG.nextStarter = null;
+  if (KG.ts) {
+    KG.phase = 'idle'; if (KG.st) khRender();
+    const d = await mgTurn(KG.ts, 0, async () => { const {deck, hands} = KHAI.fairDeal(KG.n, KG.starter, khV().base); return {deck: deck.map(c => c.id), hands: hands.map(hd => hd.map(c => c.id)), st: KG.starter}; }, async () => null);
+    if (!KG || id !== KH_ID || !d) return;
+    KG.cards = khCardsById(); const C = KG.cards, n = KG.n;
+    KG.starter = khL(d.st || 0);
+    const hands = Array.from({length: n}, (_, p) => ((d.hands || [])[khA(p)] || []).map(i => C[i]));
+    KG.took = {};
+    KG.st = {deck: (d.deck || []).map(i => C[i]), disc: [], hands, table: [], opened: new Array(n).fill(false), openVal: new Array(n).fill(0), highest: 0, teamHigh: [0, 0], shuffles: 0};
+  } else {
   const {deck, hands} = KHAI.fairDeal(KG.n, KG.starter, khV().base);   // balanced: no hand opens by itself, no dead hands
   KG.took = {};
   KG.st = {deck, disc: [], hands, table: [], opened: new Array(KG.n).fill(false), openVal: new Array(KG.n).fill(0), highest: 0, teamHigh: [0, 0], shuffles: 0};
+  }
   KG.cur = KG.starter; KG.sel = new Set(); KG.staged = []; KG.mustUse = null;
   KG.st.hands[0].sort(khSortFn); KG.rows = new Map();
   // from the second round: the cards are shuffled first, then dealt
@@ -8638,12 +8801,36 @@ async function khTurn(first) {
   // the starter holds 15 and skips the draw
   KG.phase = first && KG.st.hands[p].length === 15 ? 'play' : 'draw';
   khRender();
+  if (KG.ts) {
+    const TS = KG.ts, a = khA(p), mine = p === 0, hostBot = TS.net.host && !mine && !TS.pl[a].remote;
+    if (mine || hostBot) {   // this phone plays the turn; its end sends the table
+      const endP = new Promise(res => { KG.endNet = res; }); KG.netFallback = false;
+      mgTurn(TS, a, () => endP, () => endP);
+      if (mine) { khClock(); khTip(KG.phase === 'draw' ? 'draw' : 'play'); return; }
+      try { await khBot(p, id); } catch (e) { if (e !== 'stop') console.warn('khBot', e); }
+      return;
+    }
+    // a friend's turn: his phone plays it, the whole table comes when he ends it
+    const x = await mgTurn(TS, a, () => null, () => new Promise(res => { KG.endNet = res; KG.netFallback = true; khBot(p, KH_ID).catch(() => {}); }));
+    if (!KG || id !== KH_ID) return;
+    KG.netFallback = false; KG.endNet = null;
+    if (!x || !x.st) return;
+    const prevDisc = KG.st.disc.length;
+    khLoad(x.st);
+    if (x.end === 'void') return khVoidRound();
+    if (x.c != null && KG.cards[x.c]) { khFlyLater(khRectOf(`.ava[data-kh="${p}"]`), '.khdisc', KG.cards[x.c], 'disc'); SFX.play('cardplay'); }
+    if (x.end === 'out') { khRender(); return khRoundOver(p); }
+    KG.cur = (p + 1) % KG.n; KG.phase = 'wait'; khRender();
+    setTimeout(() => KG && id === KH_ID && khTurn(false), 350);
+    return;
+  }
   if (p === 0) { khClock(); khTip(KG.phase === 'draw' ? 'draw' : 'play'); return; }
   try { await khBot(p, id); } catch (e) { if (e !== 'stop') console.warn('khBot', e); }
 }
 // watchdog: a bot turn that got stuck (more than 15 s) is played again from where it stopped
 setInterval(() => {
   if (!KG || khEl.hidden || KG.phase === 'over' || KG.phase === 'idle' || KG.cur === 0 || document.hidden || !KG.turnAt) return;
+  if (KG.ts && (!KG.ts.net.host || KG.ts.pl[khA(KG.cur)].remote || KG.netFallback)) return;   // online: a friend's turn is his
   if (KG.botRun && Date.now() - KG.turnAt < 40000) return;   // a bot is still thinking: never start a second one
   if (Date.now() - KG.turnAt < 15000) return;
   KG.turnAt = Date.now(); KH_ID++; const id = KH_ID;
@@ -8795,6 +8982,7 @@ function khDoDiscard(p, c) {
   const st = KG.st, hand = st.hands[p];
   khFlyLater(p === 0 ? khRectOf(`.khhand2 .kc[data-i="${hand.indexOf(c)}"]`) : khRectOf(`.ava[data-kh="${p}"]`), '.khdisc', c, 'disc');
   hand.splice(hand.indexOf(c), 1); st.disc.push(c); khClockStop(); KG.sel = new Set();
+  if (khNetEnd(hand.length ? 'disc' : 'out', c)) return;
   SFX.play('cardplay');
   if (!hand.length) return khRoundOver(p);
   KG.cur = (p + 1) % KG.n; KG.phase = 'wait'; khRender();   // nothing can be played until the next turn really starts (a fast tap used to discard without drawing)
@@ -9057,6 +9245,7 @@ async function khBotInner(p, id, forHuman) {
 // ---------- round end & match ----------
 const khPenalty = hand => hand.reduce((a, c) => a + (c.j ? (c.tk ? 2 : 25) : KG && khV().konkan && c.r === 1 ? 11 : KH.val(c.r)), 0);
 async function khRoundOver(winner) {
+  if (KG && KG.cur === winner && khNetEnd('out')) return;
   const id = KH_ID; khClockStop(); KG.phase = 'over';
   const st = KG.st;
   // 2 ضد 2: the team that closed gets the ✗ (−25, its partner's hand is not counted); the other team pays
@@ -9125,8 +9314,9 @@ async function khRoundOver(winner) {
       KG.mode === 'tutorial' ? h('p', {class: 'hint', style: 'text-align:center'}, 'خلصت الجولة التعليمية! اللعبة العادية 7 جولات والأقل نقاط يفوز.') : '',
       rewardEl() || '',
       h('div', {class: 'btnrow', style: 'justify-content:center'},
-        chEndBtn(close, h('button', {type: 'button', class: 'btn primary', onclick: () => { close(); launchKhabitha({mode: KG.mode, diff: KG.diff, slow: KG.slow, count: KG.n, v: KG.v}); }}, 'العب مرة ثانية')),
-        h('button', {type: 'button', class: 'btn', onclick: () => { close(); khLeave(); }}, 'الشاشة الرئيسية')));
+        KG.ts ? (KG.ts.net.host ? h('button', {type: 'button', class: 'btn primary', onclick: () => netAgain()}, 'جولة ثانية ويه الربع') : h('p', {class: 'hint', style: 'text-align:center;width:100%'}, 'استنى المضيف 👑 يبدي جولة ثانية…'))
+          : chEndBtn(close, h('button', {type: 'button', class: 'btn primary', onclick: () => { close(); launchKhabitha({mode: KG.mode, diff: KG.diff, slow: KG.slow, count: KG.n, v: KG.v}); }}, 'العب مرة ثانية')),
+        h('button', {type: 'button', class: 'btn', onclick: () => { close(); khLeave(); }}, KG.ts ? 'اطلع من الغرفة' : 'الشاشة الرئيسية')));
   }, {dismiss: false});
 }
 // ---------- clock: every action of yours restarts it ----------
@@ -9372,11 +9562,13 @@ for (const ev of ['pointerup', 'pointercancel']) window.addEventListener(ev, e =
 }, 60), true);
 window.__khDbg = () => ({KG, KH, khRender});   // for the automatic tests
 
+window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.endNet && (KG.phase === 'draw' || KG.phase === 'play') && !khBusy) khAutoMine(); };
+
 // ===================== KASHTA SHELL: profile, home, pages, rewards =====================
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.5';
+const APP_VERSION = '8.6';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -9690,7 +9882,7 @@ function modesSheet(g, v) {
         h('div', {class: 'pnb'},
           h('button', {type: 'button', 'aria-label': 'أنشئ غرفة', onclick: () => go(false)}, h('img', {src: uiImg('bred'), alt: 'أنشئ غرفة'})),
           h('button', {type: 'button', 'aria-label': 'العب أونلاين', onclick: () => go(true)}, h('img', {src: uiImg('bblue'), alt: 'العب أونلاين'}))),
-        typeof netCreate === 'function' && typeof MG !== 'undefined' && MG[g.k] && MG[g.k].players && !MG[g.k].solo ? h('button', {type: 'button', class: 'netbtn', onclick: () => { const c = fixed() || count; if (g.k !== 'tawla' && m !== 'team' && !(MG[g.k] && MG[g.k].sizes)) PROFILE.set.count = count; saveProfile(); close(); netCreate(g, m, {count: c}); }}, '👥 العب ويه ربعك (غرفة بكود)') : '')));
+        typeof netCreate === 'function' && g.k !== 'solitaire' ? h('button', {type: 'button', class: 'netbtn', onclick: () => { const c = fixed() || count; if (g.k !== 'tawla' && m !== 'team' && !(typeof MG !== 'undefined' && MG[g.k] && MG[g.k].sizes)) PROFILE.set.count = count; saveProfile(); close(); netCreate(g, m, {count: c, v: PLAY_VAR || null, azt: azr ? azr.val() : 0}); }}, '👥 العب ويه ربعك (غرفة بكود)') : '')));
   });
 }
 const MODE_INFO = {tutorial: ['🎓', 'جولة تعليمية'], normal: ['🃏', 'لعبة عادية'], team: ['🤝', 'زوجي ٢ ضد ٢'], quick: ['⚡', 'لعبة سريعة']};
@@ -11094,10 +11286,12 @@ let CLUB_TIMER = null;
 function drawClubs() {
   const pg = $('#pg-clubs'); pg.innerHTML = ''; pg.classList.remove('clubroom');
   const my = CLUBS.find(c => c.n === PROFILE.club);
+  if (typeof rcPanel === 'function' && PROFILE.rclub && !CLUB_BROWSE) { pg.append(h('div', {class: 'phead'}, h('h2', {}, 'ناديك')), rcPanel()); return; }   // 8.5 the real club first
   if (my && !CLUB_BROWSE) return drawClubRoom(pg, my);
   pg.append(h('div', {class: 'phead'}, my ? h('button', {type: 'button', class: 'btn ghost', onclick: () => { CLUB_BROWSE = false; drawClubs(); }}, '→ ناديك') : null, h('h2', {}, 'الأندية'), h('button', {type: 'button', class: 'btn primary', onclick: createClubSheet}, '➕ أنشئ نادي')));
   if (!PROFILE.clubBonus) pg.append(h('div', {class: 'clubbonus'}, '🎁 انضم لأول نادي إلك وتحصل ', coinImg(), ' 200 كشتات (مرة وحدة بس)'));
-  pg.append(h('div', {class: 'note'}, 'نسخة تجريبية: الأندية والمنافسة الحقيقية بين الأعضاء تشتغل لما نربط السيرفر. هسه تقدر تنضم لنادي وتشوف الشكل.'));
+  if (typeof rcPanel === 'function') pg.append(PROFILE.rclub ? h('button', {type: 'button', class: 'btn gold', style: 'width:100%;margin:6px 0', onclick: () => { CLUB_BROWSE = false; drawClubs(); }}, '🔑 ارجع لنادي ربعك') : rcPanel());
+  pg.append(h('div', {class: 'note'}, 'الأندية اللي تحت تجريبية (أعضاؤها من الجهاز). نادي ربعك فوق هو الحقيقي.'));
   const q = h('input', {placeholder: 'ابحث عن نادي', 'aria-label': 'ابحث عن نادي', oninput: () => drawList()});
   pg.append(h('div', {class: 'search'}, q));
   const list = h('div'); pg.append(list);
@@ -11495,6 +11689,7 @@ function onGameEnd(w) {
 }
 let LAST_CH = null;
 function awardResult(r) {
+  if (r && r.mode !== 'tutorial' && typeof rcScore === 'function') rcScore(!!r.won);   // 8.5 points for my real club
   if (WATCH) {   // a watched table ended: nothing is counted for me, back to the tables
     LAST_REWARD = null; LAST_CH = null; CUP_LAST = null; MATCH_DONE = true;
     setTimeout(() => { toast('👁️ خلصت المباراة', 1800); watchStop(true); setTimeout(() => cupBracket(), 300); }, 2200);
@@ -12809,7 +13004,7 @@ const MG = {};
 let MGS = null, MG_ID = 0;
 const mgEl = h('div', {class: 'mgroot', id: 'mgames', hidden: true, dir: 'rtl'});
 (function mgMount() { if (document.body) document.body.append(mgEl); else document.addEventListener('DOMContentLoaded', () => document.body.append(mgEl)); })();
-const mgAlive = S => !!S && MGS === S && S.id === MG_ID;
+const mgAlive = S => !!S && (S.aliveFn ? S.aliveFn() : MGS === S && S.id === MG_ID);   // a game outside this frame (الطاولي…) says itself if it is still on
 // a wait that never comes back when the game was left (the chain simply stops)
 const MG_WQ = []; let MG_WT = null;   // the waits of the new games ride one ticker
 function mgTick() { const now = Date.now(); for (let k = MG_WQ.length - 1; k >= 0; k--) { const w = MG_WQ[k]; if (w.at <= now) { MG_WQ.splice(k, 1); if (mgAlive(w.S)) w.res(); } } if (!MG_WQ.length) { clearInterval(MG_WT); MG_WT = null; } }
@@ -12827,6 +13022,8 @@ function mgLaunch(k, o = {}) {
   const N = o.net;
   if (N) {   // 8.5 with friends: the seats in the room's order (the host first), the device fills the rest; the same names on every phone
     const seats = (N.room.seats || {}), r = netRng(N.seed ^ 0x5bd1e995), bn = mgShuffle(BOT_NAMES.concat(MORE).filter((x, j, a) => a.indexOf(x) === j).sort(), r);
+    // where each real player sits (a game may spread them, e.g. المحيبس puts friends on both teams); the log works by seat
+    if (!N.seated) { const su = Array(n).fill(null); N.order.forEach((u, k) => { let j = M.netSeat ? M.netSeat(k, n) : k; while (su[j] != null) j = (j + 1) % n; su[j] = u; }); N.order = su; N.me = su.indexOf(N.R.uid); N.seated = true; }
     me = N.me; pl = [];
     for (let i = 0; i < n; i++) { const u = N.order[i], x = u && seats[u];
       if (x) pl.push({name: x.n, av: x.av, human: i === me, remote: i !== me, friend: true});
@@ -12841,7 +13038,7 @@ function mgLaunch(k, o = {}) {
   if (tb) mgEl.style.background = tb;
   try { M.start(MGS); } catch (e) { console.error(e); toast('صار خلل باللعبة، رجعناك للرئيسية'); mgLeave(); }
 }
-function mgLeave() { MG_ID++; const S = MGS; if (S && S.net) { S.net.stop(); netQuit(); } MGS = null; mgClockStop(); mgEl.hidden = true; mgEl.innerHTML = ''; if (S) backToShell(); }
+function mgLeave() { MG_ID++; const S = MGS; if (S && S.net) { S.net.stop(); NET_CUR = null; netQuit(); } MGS = null; mgClockStop(); mgEl.hidden = true; mgEl.innerHTML = ''; if (S) backToShell(); }
 function mgAskLeave() {
   modal((s, close) => {
     s.append(h('h3', {style: 'text-align:center'}, 'تطلع من اللعبة؟'),
@@ -12929,7 +13126,12 @@ function mgMark(i, txt, cls) {
 // is written there one after another, and every phone plays the same game from that log (same deck: the same seed).
 const FB_CFG = {apiKey: 'AIzaSyB61iaRUlPcTiGJi-8sLI6Gc7mnMT45I-A', authDomain: 'kashta-fcd15.firebaseapp.com', databaseURL: 'https://kashta-fcd15-default-rtdb.europe-west1.firebasedatabase.app',
   projectId: 'kashta-fcd15', storageBucket: 'kashta-fcd15.firebasestorage.app', messagingSenderId: '989148403905', appId: '1:989148403905:web:184fd442181c5f358e1c40'};
-const NET_GAMES = ['uno', 'unonm'];   // the games that are ready to play with friends (more come batch by batch)
+const NET_GAMES = ['uno', 'unonm', 'w21', 'snakes', 'ludo', 'mheibes', 'billiard', 'mafia', 'tawla', 'domino', 'khabitha'];
+// how many seats a room has (the new games say it themselves; the first games here)
+function netPlayers(g, o) { const M = MG[g]; if (M && M.players) return M.players(o); if (g === 'tawla') return 2; if (o.mode === 'team') return 4; return Math.min(4, Math.max(2, o.count || 4)); }
+// the online game that is running now (any kind): its log and how to leave it quietly
+let NET_CUR = null;
+function netLeaveGame() { const c = NET_CUR; NET_CUR = null; if (c) { try { c.N.stop(); } catch (e) {} try { c.leave(); } catch (e) {} } closeAll(); }   // the games that are ready to play with friends (more come batch by batch)
 let FB = null, NETR = null;   // NETR: the room I am in {code, host, uid, unsub[], room}
 async function netInit() {
   if (FB) return FB;
@@ -12951,12 +13153,17 @@ async function netBusy(fn) {
 }
 // المضيف: makes the room from the game's window (the mode and the number of players he picked)
 async function netCreate(g, mode, o) {
+  if (g.k === 'dealmon') {   // ديل مون has its own room (its lobby lets the host add the device's players)
+    if (!NET.fb && !NET.room) return toast('الأونلاين ما متوفر بهالنسخة');
+    try { MODE = mode === 'quick' ? 'quick' : 'normal'; } catch (e) {}
+    return netBusy(() => hostRoom());
+  }
   if (!NET_GAMES.includes(g.k)) return toast(`${g.name} أونلاين ويه الربع جاية قريباً 🔜`, 2600);
   const r = await netBusy(async () => {
     await netInit();
     for (let t = 0; t < 12; t++) {
       const code = String(1000 + Math.floor(Math.random() * 9000));
-      const res = await FBX.runTransaction(fbr('rooms/' + code), cur => cur && cur.ts && Date.now() - cur.ts < 6 * 3600e3 ? undefined : {g: g.k, o: {mode, count: o.count || 0, diff: o.diff || 'normal'}, host: FB.uid, st: 'lobby', ts: Date.now(), seats: {[FB.uid]: netMe()}});
+      const res = await FBX.runTransaction(fbr('rooms/' + code), cur => cur && (cur.g === 'club' || cur.ts && Date.now() - cur.ts < 6 * 3600e3) ? undefined : {g: g.k, o: {mode, count: o.count || 0, diff: o.diff || 'normal', v: o.v || null, azt: o.azt || 0}, host: FB.uid, st: 'lobby', ts: Date.now(), seats: {[FB.uid]: netMe()}});
       if (res.committed) return code;
     }
     throw new Error('nocode');
@@ -12969,13 +13176,15 @@ async function netJoin(code) {
   const ok = await netBusy(async () => {
     await netInit();
     const s = await FBX.get(fbr('rooms/' + code)), room = s.val();
+    if (room && room.g === 'dealmon') return 'dm';
     if (!room || !room.seats) return 'none';
     if (room.seats[FB.uid]) { await FBX.update(fbr(`rooms/${code}/seats/${FB.uid}`), {on: true}); return 'ok'; }
     if (room.st !== 'lobby') return 'started';
-    const M = MG[room.g], n = M && M.players ? M.players(room.o) : 4;
+    const n = netPlayers(room.g, room.o);
     if (Object.keys(room.seats).length >= n) return 'full';
     await FBX.set(fbr(`rooms/${code}/seats/${FB.uid}`), netMe()); return 'ok';
   });
+  if (ok === 'dm') return joinRoom(code);
   if (ok === 'none') toast('ماكو غرفة بهالكود'); else if (ok === 'started') toast('اللعبة بهالغرفة بدت، استنى الجولة الجاية'); else if (ok === 'full') toast('الغرفة مليانة');
   else if (ok === 'ok') netEnter(code, false);
 }
@@ -12996,7 +13205,7 @@ function netEnter(code, host) {
   let lob = null, lobClose = null;
   const drawLobby = () => {
     const room = R.room; if (!lob || !room) return;
-    const g = GAMES.find(x => x.k === room.g) || {name: room.g}, M = MG[room.g], n = M && M.players ? M.players(room.o) : 4;
+    const g = GAMES.find(x => x.k === room.g) || {name: room.g}, n = netPlayers(room.g, room.o);
     const seats = Object.entries(room.seats || {}).filter(([, v]) => v && v.on !== false).sort((a, b) => (a[0] === room.host ? -1 : b[0] === room.host ? 1 : a[1].j - b[1].j));
     const link = netLink(code), msg = `تعال العب ويانا ${g.name} بكشتة 🎴\nكود الغرفة: ${code}\n${link}`;
     lob.innerHTML = '';
@@ -13024,12 +13233,12 @@ function netEnter(code, host) {
     if (!hostOn && room.host !== R.uid) { if (!R.hostT) R.hostT = setTimeout(() => { if (NETR === R && R.room && !(R.room.seats[R.room.host] || {}).on) { R.closeLobby(); netGone('المضيف طلع، انتهت الغرفة'); } }, 10000); }   // a short blip is forgiven
     else if (R.hostT) { clearTimeout(R.hostT); R.hostT = null; }
     if (room.st === 'play' && room.gid && room.gid !== R.gid) { R.gid = room.gid; R.closeLobby(); netLaunch(R); return; }
-    if (room.st === 'lobby') { if (!lob) { if (MGS && MGS.net) { mgLeaveQuiet(); } modal((s, close) => { lob = s; lobClose = close; s.classList.add('netlobby'); }, {dismiss: false}); } drawLobby(); }
-    if (MGS && MGS.net && MGS.net.R === R) MGS.net.seats(room.seats || {});
+    if (room.st === 'lobby') { if (!lob) { if (NET_CUR) netLeaveGame(); modal((s, close) => { lob = s; lobClose = close; s.classList.add('netlobby'); }, {dismiss: false}); } drawLobby(); }
+    if (NET_CUR && NET_CUR.N.R === R) NET_CUR.N.seats(room.seats || {});
   }));
 }
 function netLink(code) { const u = location.protocol === 'https:' && !/kashta\.local|claude/.test(location.host) ? location.origin + location.pathname : 'https://kashta-iq.github.io/kashta/'; return u + '?room=' + code; }
-function netGone(t) { const R = NETR; netQuit(true); if (MGS && MGS.net) mgLeaveQuiet(); toast(t, 3200); }
+function netGone(t) { netQuit(true); if (NET_CUR) netLeaveGame(); toast(t, 3200); }
 function netQuit(silent) {
   const R = NETR; if (!R) return; NETR = null;
   R.unsub.forEach(u => { try { u(); } catch (e) {} });
@@ -13048,8 +13257,13 @@ async function netAgain() { const R = NETR; if (!R || !R.host) return; await FBX
 function netLaunch(R) {
   const room = R.room, me = room.order.indexOf(R.uid);
   if (me < 0) { toast('بدت اللعبة بدونك'); return; }
-  const N = new NetG(R, room, me);
-  mgLaunch(room.g, Object.assign({}, room.o, {net: N}));
+  if (NET_CUR) netLeaveGame();
+  const N = new NetG(R, room, me), o = Object.assign({}, room.o, {net: N});
+  if (MG[room.g]) mgLaunch(room.g, o);
+  else if (room.g === 'tawla') launchTawla(o);
+  else if (room.g === 'khabitha') launchKhabitha(Object.assign(o, {count: netPlayers('khabitha', room.o)}));
+  else if (room.g === 'domino') launchDomino(Object.assign(o, {count: netPlayers('domino', room.o), target: room.o.azt || 0}));
+  else if (typeof NET_LAUNCH !== 'undefined' && NET_LAUNCH[room.g]) NET_LAUNCH[room.g](o);
 }
 // the log of one game
 class NetG {
@@ -13057,15 +13271,15 @@ class NetG {
     Object.assign(this, {R, room, me, host: R.host, seed: room.seed, order: room.order, L: [], p: 0, no: 0, w: 0, waiting: null, expect: null, pend: [], sent: {}, gid: room.gid, subs: []});
     this.base = `rooms/${R.code}`;
   }
-  begin(S) {
-    this.S = S;
+  begin(S, leave) {
+    this.S = S; NET_CUR = {N: this, leave: leave || (() => { if (MGS === S) { MG_ID++; MGS = null; mgClockStop(); mgEl.hidden = true; mgEl.innerHTML = ''; backToShell(); } })};
     this.subs.push(FBX.onChildAdded(fbr(this.base + '/log'), snap => { if (this.dead()) return; const k = +snap.key.slice(1); this.L[k] = snap.val(); this.pump(); }));
     if (this.host) this.subs.push(FBX.onChildAdded(fbr(this.base + '/in'), snap => { const x = snap.val(); FBX.remove(snap.ref); if (!this.dead()) this.inbox(x); }));
   }
   dead() { return !this.S || !mgAlive(this.S) || NETR !== this.R || this.R.gid !== this.gid; }
   stop() { this.subs.forEach(u => { try { u(); } catch (e) {} }); this.subs = []; }
-  append(x) { FBX.set(fbr(this.base + '/log/' + netKey(this.w++)), x); }
-  send(x) { if (this.host) this.inbox(Object.assign({u: this.R.uid}, x)); else FBX.push(fbr(this.base + '/in'), Object.assign({u: this.R.uid}, x)); }
+  append(x) { FBX.set(fbr(this.base + '/log/' + netKey(this.w++)), JSON.parse(JSON.stringify(x))); }
+  send(x) { if (this.host) this.inbox(Object.assign({u: this.R.uid}, x)); else FBX.push(fbr(this.base + '/in'), JSON.parse(JSON.stringify(Object.assign({u: this.R.uid}, x)))); }
   inbox(x) {   // the host checks what a phone sent and writes it in the log
     const i = this.order.indexOf(x.u); if (i < 0 || x.i !== i) return;
     if (x.t === 'e') return this.append({t: 'e', i, e: x.e});
@@ -13081,7 +13295,7 @@ class NetG {
   }
   ev(x) {
     const S = this.S;
-    if (x.e && x.e.sys === 'bot') { const p = S.pl[x.e.i]; if (p && p.remote) { p.remote = false; p.left = true; mgSay(`${p.name} طلع، يكمّل مكانه الجهاز 🤖`, 2000); } if (this.host && this.expect && this.expect.i === x.e.i) this.botFor(this.expect); return; }
+    if (x.e && x.e.sys === 'bot') { const p = S.pl[x.e.i]; if (p && p.remote) { p.remote = false; p.left = true; (S.say || mgSay)(`${p.name} طلع، يكمّل مكانه الجهاز 🤖`, 2000); } if (this.host && this.expect && this.expect.i === x.e.i) this.botFor(this.expect); return; }
     try { S.onEv && S.onEv(x.i, x.e); } catch (e) { console.error('net ev', e); }
   }
   seats(seats) {   // the host sees a friend gone: the device plays his seat
@@ -13095,6 +13309,13 @@ class NetG {
 function mgTurn(S, i, human, bot) {
   const N = S.net;
   if (!N) return S.pl[i].human ? human() : bot();
+  // one turn at a time: a turn asked for while the last one is still on its way waits for it (the log stays in step)
+  const run = () => mgTurn1(S, N, i, human, bot), p = (N.chain || Promise.resolve()).then(run, run);
+  N.chain = p.catch(() => {});
+  return p;
+}
+function mgTurn1(S, N, i, human, bot) {
+  if (N.dead()) return new Promise(() => {});
   const no = N.no;
   const got = new Promise(res => { N.waiting = {i, res}; });
   if (i === S.me) Promise.resolve().then(human).then(a => { if (!N.dead() && N.no === no) N.send({t: 'a', i, n: no, a: a == null ? null : a}); });
@@ -13113,10 +13334,204 @@ function mgTurn(S, i, human, bot) {
 }
 // something that is not a turn (أونو!, أونو ✕…): offline it happens at once; online it goes through the log
 function mgEv(S, e, local) { if (!S.net) return local(); S.net.send({t: 'e', i: S.me, e}); }
-function mgLeaveQuiet() { const S = MGS; if (S && S.net) S.net.stop(); MG_ID++; MGS = null; mgClockStop(); mgEl.hidden = true; mgEl.innerHTML = ''; closeAll(); backToShell(); }
+function mgLeaveQuiet() { netLeaveGame(); }
 // a link with ?room=1234 opens the room
 setTimeout(() => { try { const c = new URLSearchParams(location.search).get('room'); if (c) { history.replaceState(null, '', location.pathname); netJoin(c); } } catch (e) {} }, 2500);
 window.__net = {create: (k, m, o) => netCreate(GAMES.find(g => g.k === k), m, o), join: c => netJoin(c), start: () => netStart(), again: () => netAgain(), R: () => NETR && {code: NETR.code, host: NETR.host, gid: NETR.gid, room: NETR.room}, quit: () => netQuit()};
+// ديل مون already plays online through a «room» (presence of each phone + who is in). Outside Claude's page the same room runs on Firebase:
+// rooms/<4 digits>/prs/<player> holds what each phone shows (the host: the whole game; a guest: his name and answers).
+window.__fbRoom = {
+  async join(name) {
+    await netInit();
+    const code = String(name).replace(/^dm-/, ''), base = `rooms/${code}`, me = FB.uid, mine = fbr(`${base}/prs/${me}`);
+    if (!/^[0-9]{4}$/.test(code)) throw new Error('code');
+    const s0 = await FBX.get(fbr(base));
+    if (!s0.exists()) await FBX.set(fbr(base), {g: 'dealmon', host: me, ts: Date.now(), st: 'dm'});   // a new room (the host)
+    else { const v = s0.val(); if (v.g !== 'dealmon') throw new Error('هذا الكود مو لغرفة ديل مون'); }
+    let list = [], subs = [];
+    const fire = () => subs.forEach(f => { try { f({peers: list}); } catch (e) { console.error(e); } });
+    const off = FBX.onValue(fbr(`${base}/prs`), snap => {
+      const v = snap.val() || {};
+      list = Object.entries(v).map(([peer, x]) => { let p = null; try { p = JSON.parse(x.v); } catch (e) {} return {peer, sameTab: peer === me, presence: p}; });
+      fire();
+    });
+    FBX.onDisconnect(mine).remove();
+    let host = false; try { host = (await FBX.get(fbr(base + '/host'))).val() === me; } catch (e) {}
+    if (host) FBX.onDisconnect(fbr(base)).remove();
+    return {
+      presence: obj => FBX.set(mine, {v: JSON.stringify(obj), t: Date.now()}),
+      peers: () => list,
+      onPeers: f => { subs.push(f); return () => { subs = subs.filter(x => x !== f); }; },
+      leave: async () => { off(); subs = []; try { await FBX.remove(host ? fbr(base) : mine); } catch (e) {} }
+    };
+  }
+};
+// a 4-digit code that is free (ديل مون's rooms live next to the others)
+async function netFreeCode() { await netInit(); for (let t = 0; t < 12; t++) { const c = String(1000 + Math.floor(Math.random() * 9000)); const s = await FBX.get(fbr('rooms/' + c)); if (!s.exists()) return c; } return String(1000 + Math.floor(Math.random() * 9000)); }
+// ---------- 8.5 the walkie-talkie: hold 🎤, talk, let go: your voice reaches everybody in the room (in a second or two) ----------
+// a clip (at most 15 s, a light quality) goes to rooms/<code>/vc and is played on the others' phones, then removed.
+const VC = {btn: null, code: null, off: null, rec: null, chunks: [], t0: 0, ctx: null, q: Promise.resolve(), since: 0};
+function vcCode() { if (NETR && (NET_CUR || NETR.room)) return NETR.code; try { if (NET.fb && NET.r && NET.code && /^[0-9]{4}$/.test(NET.code)) return NET.code; } catch (e) {} return null; }
+function vcMime() { if (!window.MediaRecorder) return null; for (const m of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus']) try { if (MediaRecorder.isTypeSupported(m)) return m; } catch (e) {} return ''; }
+function vcSync() {
+  const code = FB ? vcCode() : null;
+  if (code === VC.code) return;
+  if (VC.off) { try { VC.off(); } catch (e) {} VC.off = null; }
+  VC.code = code;
+  if (!code) { if (VC.btn) VC.btn.hidden = true; return; }
+  if (!VC.btn) {
+    VC.btn = h('button', {type: 'button', class: 'vcbtn', 'aria-label': 'اضغط واحجي'}, h('b', {}, '🎤'), h('small', {}, 'اضغط واحجي'));
+    const down = e => { e.preventDefault(); vcStart(); }, up = e => { e.preventDefault(); vcStop(); };
+    VC.btn.addEventListener('pointerdown', down); VC.btn.addEventListener('pointerup', up); VC.btn.addEventListener('pointercancel', up); VC.btn.addEventListener('pointerleave', e => { if (VC.rec) up(e); });
+    VC.btn.addEventListener('contextmenu', e => e.preventDefault());
+    document.body.append(VC.btn);
+  }
+  VC.btn.hidden = false; VC.since = Date.now();
+  VC.off = FBX.onChildAdded(fbr(`rooms/${code}/vc`), snap => {
+    const x = snap.val(); if (!x || x.u === FB.uid || x.t < VC.since - 2000 || !x.d) return;
+    vcPlay(x);
+  });
+}
+setInterval(() => { try { vcSync(); } catch (e) {} }, 1000);
+async function vcStart() {
+  if (VC.rec) return;
+  const mime = vcMime(); if (mime == null || !navigator.mediaDevices) return toast('المايك ما يشتغل بهالجهاز');
+  vcUnlock();
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}}); } catch (e) { return toast('لازم تسمح للعبة تستخدم المايك 🎤', 2600); }
+  const rec = new MediaRecorder(stream, Object.assign(mime ? {mimeType: mime} : {}, {audioBitsPerSecond: 24000}));
+  VC.rec = rec; VC.chunks = []; VC.t0 = Date.now(); VC.btn.classList.add('on');
+  rec.ondataavailable = e => { if (e.data && e.data.size) VC.chunks.push(e.data); };
+  rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); vcSend(new Blob(VC.chunks, {type: rec.mimeType || mime || 'audio/webm'})); };
+  rec.start(); VC.cap = setTimeout(() => vcStop(), 15000);
+  try { SFX.play('click', .4); } catch (e) {}
+}
+function vcStop() { if (!VC.rec) return; clearTimeout(VC.cap); const r = VC.rec, short = Date.now() - VC.t0 < 400; VC.rec = null; VC.btn.classList.remove('on'); VC.short = short; try { r.stop(); } catch (e) {} }
+function vcSend(blob) {
+  if (VC.short || !blob.size || !VC.code) { if (VC.short) toast('اضغط وخليك ضاغط وانت تحجي 🎤', 1800); return; }
+  if (blob.size > 160000) return toast('الصوت طويل هواية');
+  const fr = new FileReader();
+  fr.onload = () => { const code = VC.code, ref = FBX.push(fbr(`rooms/${code}/vc`), {u: FB.uid, n: (PROFILE.name || 'لاعب').slice(0, 20), d: fr.result, t: Date.now()});
+    toast('🎤 وصل صوتك', 1200); setTimeout(() => { try { FBX.remove(ref); } catch (e) {} }, 30000); };
+  fr.readAsDataURL(blob);
+}
+function vcUnlock() { try { if (!VC.ctx) VC.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (VC.ctx.state === 'suspended') VC.ctx.resume(); } catch (e) {} }
+document.addEventListener('pointerdown', () => { if (VC.code) vcUnlock(); }, true);
+function vcPlay(x) {   // one after another, never two voices on top of each other
+  VC.q = VC.q.then(() => new Promise(res => {
+    const tag = h('div', {class: 'vctag'}, '🔊 ', h('b', {}, x.n), ' يحجي…'); document.body.append(tag);
+    const done = () => { tag.remove(); res(); };
+    const a = new Audio(x.d); a.volume = 1; a.onended = done; a.onerror = () => vcPlayCtx(x).then(done, done);
+    a.play().catch(() => vcPlayCtx(x).then(done, done));
+    setTimeout(done, 17000);
+  }));
+}
+async function vcPlayCtx(x) {   // a phone that does not let a sound start by itself: through the audio unlocked by a tap
+  vcUnlock(); if (!VC.ctx) throw new Error('noctx');
+  const buf = await (await fetch(x.d)).arrayBuffer(), ab = await VC.ctx.decodeAudioData(buf);
+  return new Promise(res => { const s = VC.ctx.createBufferSource(); s.buffer = ab; s.connect(VC.ctx.destination); s.onended = res; s.start(); });
+}
+window.__vc = {start: () => vcStart(), stop: () => vcStop(), code: () => VC.code};
+// ---------- 8.5 نادي ربعك: a real club with a 4-digit code (it lives next to the game rooms, g: 'club') ----------
+// rooms/<code> = {g:'club', name, em, owner, ts, members/<uid>: {n, av, j, xp, on}, chat/<push>: {u, n, m, t}}
+const RC = {code: null, data: null, offs: [], page: null};
+const rcSmallAv = () => { const a = myAvatar(); return a && a.length < 60000 ? a : avatarURL(PROFILE.gender, PROFILE.avi || 0); };
+async function rcCreate(name, em) {
+  const code = await netBusy(async () => {
+    await netInit();
+    for (let t = 0; t < 15; t++) { const c = String(1000 + Math.floor(Math.random() * 9000));
+      const r = await FBX.runTransaction(fbr('rooms/' + c), cur => cur ? undefined : {g: 'club', name, em, owner: FB.uid, ts: Date.now(), members: {[FB.uid]: {n: PROFILE.name || 'لاعب', av: rcSmallAv(), j: Date.now(), xp: 0}}});
+      if (r.committed) return c; }
+    throw new Error('nocode');
+  });
+  if (code) { PROFILE.rclub = code; saveProfile(); toast(`تأسس نادي ${name} 🎉 الكود ${code}`, 2600); rcWatch(); drawClubs(); }
+}
+async function rcJoin(code) {
+  code = String(code || '').replace(/[^0-9]/g, ''); if (code.length !== 4) return toast('الكود 4 أرقام');
+  const ok = await netBusy(async () => {
+    await netInit();
+    const v = (await FBX.get(fbr('rooms/' + code))).val();
+    if (!v || v.g !== 'club') return 'none';
+    if (Object.keys(v.members || {}).length >= 30 && !(v.members || {})[FB.uid]) return 'full';
+    await FBX.update(fbr(`rooms/${code}/members/${FB.uid}`), {n: PROFILE.name || 'لاعب', av: rcSmallAv(), j: Date.now(), xp: ((v.members || {})[FB.uid] || {}).xp || 0});
+    await FBX.push(fbr(`rooms/${code}/chat`), {u: 'sys', n: '', m: `${PROFILE.name || 'لاعب'} انضم للنادي 👋`, t: Date.now()});
+    return 'ok';
+  });
+  if (ok === 'none') toast('ماكو نادي بهالكود'); else if (ok === 'full') toast('النادي مليان (30 عضو)');
+  else if (ok === 'ok') { PROFILE.rclub = code; saveProfile(); toast('انضميت للنادي 🎉'); rcWatch(); drawClubs(); }
+}
+async function rcLeave() {
+  if (!PROFILE.rclub || !await confirmBox('تطلع من النادي؟', 'تكدر ترجع بنفس الكود بعدين.', 'اطلع')) return;
+  const code = PROFILE.rclub, d = RC.data;
+  try { await netInit();
+    const left = Object.entries((d && d.members) || {}).filter(([u]) => u !== FB.uid).sort((a, b) => a[1].j - b[1].j);
+    if (!left.length) await FBX.remove(fbr('rooms/' + code));
+    else { if (d.owner === FB.uid) await FBX.update(fbr('rooms/' + code), {owner: left[0][0]}); await FBX.remove(fbr(`rooms/${code}/members/${FB.uid}`)); await FBX.push(fbr(`rooms/${code}/chat`), {u: 'sys', n: '', m: `${PROFILE.name || 'لاعب'} طلع من النادي`, t: Date.now()}); }
+  } catch (e) {}
+  PROFILE.rclub = null; saveProfile(); rcStop(); drawClubs();
+}
+function rcStop() { RC.offs.forEach(f => { try { f(); } catch (e) {} }); RC.offs = []; RC.code = null; RC.data = null; }
+async function rcWatch() {
+  const code = PROFILE.rclub; if (!code || RC.code === code) return;
+  rcStop(); RC.code = code;
+  try { await netInit(); } catch (e) { RC.code = null; return; }
+  const on = fbr(`rooms/${code}/members/${FB.uid}/on`);
+  RC.offs.push(FBX.onValue(fbr('.info/connected'), s => { if (s.val() === true && RC.code === code) { FBX.onDisconnect(on).set(false); FBX.set(on, true); } }));
+  RC.offs.push(FBX.onValue(fbr('rooms/' + code), s => {
+    const v = s.val();
+    if (!v || v.g !== 'club' || !(v.members || {})[FB.uid]) { if (RC.code === code) { rcStop(); PROFILE.rclub = null; saveProfile(); toast('النادي انحذف أو انطلعت منه'); } }
+    else RC.data = v;
+    if (RC.page && RC.page.isConnected) { const ae = document.activeElement, keep = ae && ae.closest && ae.closest('.rcsend') ? ae.value : null; drawClubs(); if (keep != null) { const i = document.querySelector('.rcsend input'); if (i) { i.value = keep; i.focus(); } } }
+  }));
+}
+setTimeout(() => { if (PROFILE.rclub) rcWatch(); }, 3000);
+// club points: every game counts (a win 40, a loss 15) for me and for the club
+function rcScore(won) { const code = PROFILE.rclub; if (!code || !FB) return; try { FBX.runTransaction(fbr(`rooms/${code}/members/${FB.uid}/xp`), x => (x || 0) + (won ? 40 : 15)); } catch (e) {} }
+function rcSend(m) { m = String(m || '').trim().slice(0, 200); if (!m || !RC.code || !FB) return; FBX.push(fbr(`rooms/${RC.code}/chat`), {u: FB.uid, n: PROFILE.name || 'لاعب', m, t: Date.now()}); }
+// the clubs page: my real club on top (or the way to make / join one)
+function rcPanel() {
+  const box = h('div', {class: 'rcbox'});
+  if (!PROFILE.rclub) {
+    box.append(h('b', {class: 'rct'}, '🔑 نادي ربعك الحقيقي'), h('small', {}, 'سوّي نادي وانطي ربعك الكود، أو ادخل نادي صاحبك. الأعضاء والدردشة والنقاط كلها حقيقية.'),
+      h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn gold', onclick: rcCreateSheet}, '➕ أسس نادي'), h('button', {type: 'button', class: 'btn primary', onclick: rcJoinSheet}, '🔑 ادخل بكود')));
+    return box;
+  }
+  rcWatch();
+  RC.page = box;
+  const d = RC.data;
+  if (!d) { box.append(h('p', {class: 'hint'}, '⏳ جاري تحميل ناديك…')); return box; }
+  const M = Object.entries(d.members || {}).sort((a, b) => (b[1].xp || 0) - (a[1].xp || 0)), xp = M.reduce((a, [, m]) => a + (m.xp || 0), 0), lv = clubLvOf(xp);
+  const msg = `تعال انضم لنادي ${d.name} بكشتة 🎴\nكود النادي: ${PROFILE.rclub}\n${netLink(PROFILE.rclub).replace('?room=', '?club=')}`;
+  const feed = h('div', {class: 'rcfeed'}), inp = h('input', {maxlength: '200', placeholder: 'اكتب رسالة للنادي…', 'aria-label': 'رسالة', onkeydown: e => { if (e.key === 'Enter') send(); }});
+  const send = () => { rcSend(inp.value); inp.value = ''; };
+  const chat = Object.values(d.chat || {}).sort((a, b) => a.t - b.t).slice(-60);
+  chat.forEach(x => feed.append(x.u === 'sys' ? h('div', {class: 'rcsys'}, x.m) : h('div', {class: 'rcmsg' + (x.u === FB.uid ? ' me' : '')}, h('b', {}, x.u === FB.uid ? 'انت' : x.n), h('span', {}, x.m))));
+  setTimeout(() => { feed.scrollTop = feed.scrollHeight; }, 30);
+  box.append(h('div', {class: 'rchead'}, h('span', {class: 'rcem'}, d.em || '🛡️'), h('div', {}, h('b', {class: 'rct'}, d.name), h('small', {}, `مستوى ${lv.L} · 👥 ${M.length} · الكود `, h('bdi', {dir: 'ltr', class: 'rccode'}, PROFILE.rclub))),
+      h('button', {type: 'button', class: 'btn', onclick: () => window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank')}, '📲 ادعو')),
+    h('div', {class: 'rcbar'}, h('i', {style: `width:${lv.pct}%`})),
+    h('div', {class: 'rcmem'}, ...M.map(([u, m], k) => h('div', {class: 'rcm' + (m.on ? ' on' : '')}, h('img', {src: m.av || avatarURL('m', 1), alt: ''}), h('span', {}, (u === FB.uid ? 'انت' : m.n) + (u === d.owner ? ' 👑' : '')), h('small', {}, `${k === 0 ? '🥇 ' : ''}${m.xp || 0} نقطة`)))),
+    feed, h('div', {class: 'rcsend'}, inp, h('button', {type: 'button', class: 'btn primary', onclick: send}, '➤')),
+    h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn', onclick: () => { CLUB_BROWSE = true; drawClubs(); }}, '🏛️ الأندية الثانية'), h('button', {type: 'button', class: 'btn', onclick: rcLeave}, '🚪 اطلع من النادي')));
+  return box;
+}
+function rcCreateSheet() {
+  modal((s, close) => {
+    let em = CLUB_EMS[0]; const name = h('input', {maxlength: '20', placeholder: 'اسم النادي', 'aria-label': 'اسم النادي'}), ems = h('div', {class: 'empick'});
+    const draw = () => { ems.innerHTML = ''; CLUB_EMS.forEach(x => ems.append(h('button', {type: 'button', class: x === em ? 'on' : '', onclick: () => { em = x; draw(); }}, x))); }; draw();
+    s.append(h('h3', {}, '➕ أسس نادي ربعك'), h('label', {class: 'fld'}, 'اسم النادي', name), h('div', {class: 'lbl'}, 'الشعار'), ems,
+      h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn gold', onclick: () => { const n = name.value.trim(); if (n.length < 3) return toast('اكتب اسم للنادي (3 حروف أو أكثر)'); close(); rcCreate(n, em); }}, 'أسس'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع')));
+  });
+}
+function rcJoinSheet() {
+  modal((s, close) => {
+    const inp = h('input', {type: 'tel', inputmode: 'numeric', maxlength: 4, class: 'netcode-in', placeholder: '1234', 'aria-label': 'كود النادي'});
+    s.append(h('h3', {style: 'text-align:center'}, '🔑 ادخل نادي ربعك'), inp, h('div', {class: 'btnrow', style: 'justify-content:center'}, h('button', {type: 'button', class: 'btn primary', onclick: () => { close(); rcJoin(inp.value); }}, 'ادخل'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'إلغاء')));
+    setTimeout(() => inp.focus(), 60);
+  });
+}
+setTimeout(() => { try { const c = new URLSearchParams(location.search).get('club'); if (c) { history.replaceState(null, '', location.pathname); rcJoin(c); } } catch (e) {} }, 2600);
+window.__rc = {create: (n, e) => rcCreate(n, e || '🦁'), join: c => rcJoin(c), send: m => rcSend(m), data: () => RC.data, code: () => PROFILE.rclub, score: w => rcScore(w)};
+window.__dmo = () => ({mode: NET.mode, code: NET.code, fb: !!NET.fb, seat: NET.seat, g: !!G, cur: G && G.cur, app: !document.getElementById('app').hidden, peers: NET.r ? NET.r.peers().length : 0, hands: G ? G.players.map(p => p.hand.length).join(',') : ''});
 
 // ---------- 8.1 أونو و«أونو لا ترحم» ----------
 // one round: the first to empty his hand wins. «اسحب» cards stack (one of the same or a bigger draw on top).
@@ -13481,19 +13896,18 @@ async function ldLoop(S) {
   try {
     while (mgAlive(S) && !S.over) {
       const p = S.cur; S.phase = 'roll'; S.moves = []; ldRender(S);
-      if (S.pl[p].human) { await new Promise(res => { S.wait = () => { S.wait = null; mgClockStop(); res(); }; mgClockStart(S, () => S.wait && S.wait()); ldRender(S); }); }
-      else await mgWait(S, 650);
+      await mgTurn(S, p, () => new Promise(res => { S.wait = () => { S.wait = null; mgClockStop(); res(1); }; mgClockStart(S, () => S.wait && S.wait()); ldRender(S); }), async () => { await mgWait(S, 650); return 1; });
       if (!mgAlive(S)) return;
-      const d = 1 + Math.floor(Math.random() * 6); S.die = d; S.rolling = true; ldRender(S); try { SFX.play('dice', .6); } catch (e) {}
+      const d = 1 + Math.floor(S.rnd() * 6); S.die = d; S.rolling = true; ldRender(S); try { SFX.play('dice', .6); } catch (e) {}
       await mgWait(S, 450); S.rolling = false;
       let again = d === 6;
       if (d === 6) { S.sixes++; if (S.sixes === 3) { mgSay('ثلاث ستات ورا بعض: راح الدور'); S.sixes = 0; again = false; await mgWait(S, 900); S.cur = ldNext(S, p); continue; } }
       const mv = ldMoves(S, p, d); S.moves = mv;
       if (!mv.length) { ldRender(S); await mgWait(S, 800); if (!again) { S.sixes = 0; S.cur = ldNext(S, p); } continue; }
-      let pick;
-      if (mv.length === 1 && !S.pl[p].human) pick = mv[0];
-      else if (S.pl[p].human) { S.phase = 'move'; ldRender(S); pick = await new Promise(res => { S.wait = m => { S.wait = null; mgClockStop(); res(m); }; mgClockStart(S, () => S.wait && S.wait(ldBest(S, p, mv))); ldRender(S); }); }
-      else { await mgWait(S, 450); pick = ldBest(S, p, mv); }
+      // the choice travels as the move's number in the list (the same list on every phone)
+      const k = await mgTurn(S, p, () => { S.phase = 'move'; ldRender(S); return new Promise(res => { S.wait = m => { S.wait = null; mgClockStop(); res(Math.max(0, mv.indexOf(m))); }; mgClockStart(S, () => S.wait && S.wait(ldBest(S, p, mv))); ldRender(S); }); },
+        async () => { if (mv.length > 1) await mgWait(S, 450); return Math.max(0, mv.indexOf(ldBest(S, p, mv))); });
+      const pick = mv[k] || mv[0];
       if (!mgAlive(S)) return;
       S.phase = 'anim'; S.moves = [];
       const bonus = await ldMove(S, pick);
@@ -13517,7 +13931,7 @@ async function ldMove(S, m) {
   if (!mgAlive(S)) return false;
   let bonus = false;
   const hits = ldHits(S, m.o, pc[m.i]);
-  if (hits.length) { hits.forEach(x => { S.pcs[x.q][x.i] = -1; }); bonus = true; try { SFX.play('hitchk', .7); } catch (e) {} mgSay(m.o === 0 ? 'كتلت قطعة! ارمي مرة ثانية 💥' : hits.some(x => x.q === 0) ? `${S.pl[m.o].name} كتل قطعتك 😬` : `${S.pl[m.o].name} كتل قطعة`); }
+  if (hits.length) { hits.forEach(x => { S.pcs[x.q][x.i] = -1; }); bonus = true; try { SFX.play('hitchk', .7); } catch (e) {} mgSay(m.o === S.me ? 'كتلت قطعة! ارمي مرة ثانية 💥' : hits.some(x => x.q === S.me) ? `${S.pl[m.o].name} كتل قطعتك 😬` : `${S.pl[m.o].name} كتل قطعة`); }
   if (pc[m.i] === 56) { bonus = true; try { SFX.play('bearoff', .6); } catch (e) {} }
   ldRender(S);
   return bonus;
@@ -13551,10 +13965,10 @@ function ldBest(S, p, mv) {
 function ldCheck(S) {
   const n = S.pl.length;
   if (S.team) {
-    for (const t of [[0, 2], [1, 3]]) if (t.every(p => ldDone(S, p))) { S.over = true; ldRender(S); setTimeout(() => mgEnd(S, t.includes(0), t.includes(0) ? 'فزتوا انت وشريكك 🏆' : 'فاز الفريق الثاني'), 700); return true; }
+    for (const t of [[0, 2], [1, 3]]) if (t.every(p => ldDone(S, p))) { S.over = true; ldRender(S); setTimeout(() => mgEnd(S, t.includes(S.me), t.includes(S.me) ? 'فزتوا انت وشريكك 🏆' : 'فاز الفريق الثاني'), 700); return true; }
     return false;
   }
-  for (let p = 0; p < n; p++) if (ldDone(S, p)) { S.over = true; ldRender(S); setTimeout(() => mgEnd(S, p === 0, p === 0 ? 'فزت 🏆 وصّلت كل قطعك' : `فاز ${S.pl[p].name}`), 700); return true; }
+  for (let p = 0; p < n; p++) if (ldDone(S, p)) { S.over = true; ldRender(S); setTimeout(() => mgEnd(S, p === S.me, p === S.me ? 'فزت 🏆 وصّلت كل قطعك' : `فاز ${S.pl[p].name}`), 700); return true; }
   return false;
 }
 // where a piece stands, in board cells (row, col): the base spots, the track, the lane, the middle
@@ -13589,7 +14003,7 @@ function ldBoardSvg(S) {
 let LD_SVG = null;
 function ldRender(S) {
   if (!mgAlive(S)) return;
-  const myTurn = S.cur === 0 && !S.over, mv = S.phase === 'move' && myTurn ? S.moves : [];
+  const myTurn = S.cur === S.me && !S.over, mv = S.phase === 'move' && myTurn ? S.moves : [];
   if (!LD_SVG) LD_SVG = ldBoardSvg(S);
   const board = h('div', {class: 'ldboard'}); board.innerHTML = LD_SVG;
   // pieces: the ones sharing a cell sit a little apart
@@ -13643,22 +14057,21 @@ async function snLoop(S) {
   try {
     while (mgAlive(S) && !S.over) {
       const p = S.cur; S.phase = 'roll'; snRender(S);
-      if (S.pl[p].human) await new Promise(res => { S.wait = () => { S.wait = null; mgClockStop(); res(); }; mgClockStart(S, () => S.wait && S.wait()); snRender(S); });
-      else await mgWait(S, 700);
+      await mgTurn(S, p, () => new Promise(res => { S.wait = () => { S.wait = null; mgClockStop(); res(1); }; mgClockStart(S, () => S.wait && S.wait()); snRender(S); }), async () => { await mgWait(S, 700); return 1; });
       if (!mgAlive(S)) return;
-      const d = 1 + Math.floor(Math.random() * 6); S.die = d; S.rolling = true; S.phase = 'anim'; snRender(S); try { SFX.play('dice', .6); } catch (e) {}
+      const d = 1 + Math.floor(S.rnd() * 6); S.die = d; S.rolling = true; S.phase = 'anim'; snRender(S); try { SFX.play('dice', .6); } catch (e) {}
       await mgWait(S, 450); S.rolling = false;
       let x = S.pos[p], back = false;
       for (let k = 0; k < d; k++) { if (x === 100) back = true; const nx = x + (back ? -1 : 1); await snHop(S, p, x, nx); if (!mgAlive(S)) return; x = nx; S.pos[p] = x; snRender(S); try { SFX.play('lstep', .55); } catch (e) {} await mgWait(S, 70); }   // 8.3 hop by hop
-      if (back) mgSay(p === 0 ? 'عبرت المية، رجعت لورا ↩️' : `${S.pl[p].name} عبر المية ورجع`);
+      if (back) mgSay(p === S.me ? 'عبرت المية، رجعت لورا ↩️' : `${S.pl[p].name} عبر المية ورجع`);
       const to = SN_LAD[x] || SN_SNK[x];
       if (to) {
         await mgWait(S, 250);
-        const up = to > x; mgSay(up ? `🪜 ${p === 0 ? 'صعدت' : S.pl[p].name + ' صعد'} من ${x} لـ${to}` : `🐍 ${p === 0 ? 'لدغتك الحية' : 'الحية لدغت ' + S.pl[p].name}: من ${x} لـ${to}`);
+        const up = to > x; mgSay(up ? `🪜 ${p === S.me ? 'صعدت' : S.pl[p].name + ' صعد'} من ${x} لـ${to}` : `🐍 ${p === S.me ? 'لدغتك الحية' : 'الحية لدغت ' + S.pl[p].name}: من ${x} لـ${to}`);
         try { SFX.play(up ? 'gift' : 'lose', .5); } catch (e) {}
         S.slide = p; S.pos[p] = to; snRender(S); await mgWait(S, 700); S.slide = null;
       }
-      if (S.pos[p] === 100) { S.over = true; snRender(S); setTimeout(() => mgEnd(S, p === 0, p === 0 ? 'وصلت المية وفزت 🏆' : `فاز ${S.pl[p].name}`), 700); return; }
+      if (S.pos[p] === 100) { S.over = true; snRender(S); setTimeout(() => mgEnd(S, p === S.me, p === S.me ? 'وصلت المية وفزت 🏆' : `فاز ${S.pl[p].name}`), 700); return; }
       S.cur = (p + 1) % S.pl.length;
     }
   } catch (e) { console.error('snakes', e); }
@@ -13713,7 +14126,7 @@ function snHop(S, p, x0, x1) {
 function snRender(S) {
   if (!mgAlive(S)) return;
   if (!SN_SVG) SN_SVG = snBoardSvg();
-  const myTurn = S.cur === 0 && !S.over && S.phase === 'roll' && !!S.wait;
+  const myTurn = S.cur === S.me && !S.over && S.phase === 'roll' && !!S.wait;
   const board = h('div', {class: 'snboard'}); board.innerHTML = SN_SVG;
   const U = v => (v + .2) / 10.4 * 100, at = {};
   S.pos.forEach((x, p) => { (at[x] = at[x] || []).push(p); });
@@ -13725,7 +14138,7 @@ function snRender(S) {
   mgEl.innerHTML = '';
   mgEl.append(mgTop(S, 'حية ودرج'),
     h('div', {class: 'snseats'}, ...S.pl.map((_, p) => mgSeat(S, p, S.pos[p] ? 'مربع ' + S.pos[p] : 'برا', {on: S.cur === p && !S.over, cls: 'ld-' + SN_COL[p]}))),
-    board, h('div', {class: 'mgdiebar'}, die, h('b', {class: 'unoinfo'}, S.over ? '' : myTurn ? 'دورك: اضغط الزار' : S.cur === 0 ? '' : `دور ${S.pl[S.cur].name}`)));
+    board, h('div', {class: 'mgdiebar'}, die, h('b', {class: 'unoinfo'}, S.over ? '' : myTurn ? 'دورك: اضغط الزار' : S.cur === S.me ? '' : `دور ${S.pl[S.cur].name}`)));
   if (MG_CLK) mgEl.append(MG_CLK.bar);
 }
 
@@ -13738,21 +14151,21 @@ function mgCardEl(c, cls = '', back) {
   el.style.backgroundImage = `url("${back ? backSrc(PROFILE.eq.back === 'classic' ? 'clred' : PROFILE.eq.back) : khImg(c.s + '-' + c.r)}")`;
   return el;
 }
-function mgDeck52() { const d = []; for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) d.push({s, r, id: s * 13 + r}); return mgShuffle(d); }
+function mgDeck52(rnd) { const d = []; for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) d.push({s, r, id: s * 13 + r}); return mgShuffle(d, rnd); }
 const t21Val = hd => { let v = 0, a = 0; for (const c of hd) { v += c.r > 10 ? 10 : c.r; if (c.r === 1) a++; } while (a-- && v + 10 <= 21) v += 10; return v; };
 MG.w21 = {name: 'ورق 21', bg: 't21_table', players: o => o.mode === 'tutorial' ? 2 : Math.min(4, Math.max(2, o.count || 2)), start: t21Start,
   rules: ['كل جولة كل لاعب ياخذ ورقتين، والهدف توصل 21 أو أقرب لها.', 'الآص يحسب 1 أو 11، والولد والبنت والشايب كل واحد 10، والباقي برقمه.',
     'بدورك تختار «اسحب» تاخذ ورقة، أو «اكفي» توكف. إذا عبرت 21 تحترق بهاي الجولة.', 'بالأخير الأقرب لـ21 ياخذ الجولة (إذا تعادلوا كلهم ياخذوها). ورقة كل لاعب الثانية تبقى مخفية لحد آخر الجولة.',
     'أول واحد يفوز بـ5 جولات يفوز باللعبة (السريعة 3).']};
 function t21Start(S) {
-  Object.assign(S, {goal: S.mode === 'quick' || S.mode === 'tutorial' ? 3 : 5, score: S.pl.map(() => 0), round: 0, first: Math.floor(Math.random() * S.pl.length)});
+  Object.assign(S, {goal: S.mode === 'quick' || S.mode === 'tutorial' ? 3 : 5, score: S.pl.map(() => 0), round: 0, first: Math.floor(S.rnd() * S.pl.length)});
   if (S.mode === 'tutorial') setTimeout(() => mgRules(S.k), 300);
   t21Loop(S);
 }
 async function t21Loop(S) {
   try {
     while (mgAlive(S) && !S.over) {
-      S.round++; S.deck = mgDeck52(); S.hands = S.pl.map(() => []); S.stood = S.pl.map(() => false); S.bust = S.pl.map(() => false); S.show = false;
+      S.round++; S.deck = mgDeck52(S.rnd); S.hands = S.pl.map(() => []); S.stood = S.pl.map(() => false); S.bust = S.pl.map(() => false); S.show = false;
       const n = S.pl.length, order = S.pl.map((_, k) => (S.first + k) % n);
       for (let k = 0; k < 2; k++) for (const p of order) { S.hands[p].push(S.deck.pop()); t21Render(S); try { SFX.play('deal', .4); } catch (e) {} await mgWait(S, 160); }
       for (const p of order) {
@@ -13760,11 +14173,10 @@ async function t21Loop(S) {
         while (!S.stood[p] && !S.bust[p] && mgAlive(S)) {
           t21Render(S);
           let a;
-          if (S.pl[p].human) a = await new Promise(res => { S.wait = x => { S.wait = null; mgClockStop(); res(x); }; mgClockStart(S, () => S.wait && S.wait(t21Bot(S, 0))); t21Render(S); });
-          else { await mgWait(S, 800); a = t21Bot(S, p); }
+          a = await mgTurn(S, p, () => new Promise(res => { S.wait = x => { S.wait = null; mgClockStop(); res(x); }; mgClockStart(S, () => S.wait && S.wait(t21Bot(S, S.me))); t21Render(S); }), async () => { await mgWait(S, 800); return t21Bot(S, p); });
           if (!mgAlive(S)) return;
-          if (a === 'hit') { S.hands[p].push(S.deck.pop()); try { SFX.play('draw', .5); } catch (e) {} const v = t21Val(S.hands[p]); if (v > 21) { S.bust[p] = true; mgSay(p === 0 ? `احترقت (${v}) 🔥` : `${S.pl[p].name} احترق`); } else if (v === 21) S.stood[p] = true; }
-          else { S.stood[p] = true; if (p) mgSay(`${S.pl[p].name}: اكفي`, 900); }
+          if (a === 'hit') { S.hands[p].push(S.deck.pop()); try { SFX.play('draw', .5); } catch (e) {} const v = t21Val(S.hands[p]); if (v > 21) { S.bust[p] = true; mgSay(p === S.me ? `احترقت (${v}) 🔥` : `${S.pl[p].name} احترق`); } else if (v === 21) S.stood[p] = true; }
+          else { S.stood[p] = true; if (p !== S.me) mgSay(`${S.pl[p].name}: اكفي`, 900); }
         }
         t21Render(S); await mgWait(S, 300);
       }
@@ -13773,13 +14185,13 @@ async function t21Loop(S) {
       const live = S.pl.map((_, p) => p).filter(p => !S.bust[p]), best = live.length ? Math.max(...live.map(p => t21Val(S.hands[p]))) : 0;
       const win = live.filter(p => t21Val(S.hands[p]) === best);
       win.forEach(p => S.score[p]++);
-      t21Render(S); try { SFX.play(win.includes(0) ? 'win' : 'cardplay', .5); } catch (e) {}
-      mgSay(!win.length ? 'كلهم احترقوا، محد اخذ الجولة' : win.length > 1 ? `تعادل على ${best}` : win[0] === 0 ? `اخذت الجولة بـ${best} 👏` : `${S.pl[win[0]].name} اخذ الجولة بـ${best}`, 2000);
+      t21Render(S); try { SFX.play(win.includes(S.me) ? 'win' : 'cardplay', .5); } catch (e) {}
+      mgSay(!win.length ? 'كلهم احترقوا، محد اخذ الجولة' : win.length > 1 ? `تعادل على ${best}` : win[0] === S.me ? `اخذت الجولة بـ${best} 👏` : `${S.pl[win[0]].name} اخذ الجولة بـ${best}`, 2000);
       await mgWait(S, 2600);
       const champ = S.score.findIndex(x => x >= S.goal);
       if (champ >= 0) {
         const top = Math.max(...S.score), tops = S.score.map((x, p) => x === top ? p : -1).filter(p => p >= 0);
-        if (tops.length === 1) { S.over = true; return mgEnd(S, tops[0] === 0, tops[0] === 0 ? 'فزت 🏆' : `فاز ${S.pl[tops[0]].name}`, [`النتيجة: ${S.pl.map((p, k) => `${k ? p.name : 'انت'} ${S.score[k]}`).join(' · ')}`]); }
+        if (tops.length === 1) { S.over = true; return mgEnd(S, tops[0] === S.me, tops[0] === S.me ? 'فزت 🏆' : `فاز ${S.pl[tops[0]].name}`, [`النتيجة: ${S.pl.map((p, k) => `${k !== S.me ? p.name : 'انت'} ${S.score[k]}`).join(' · ')}`]); }
         // a tie at the top: one more round decides it
         mgSay('تعادل على الصدارة: جولة فاصلة', 1600); await mgWait(S, 1700);
       }
@@ -13797,9 +14209,9 @@ function t21Bot(S, p) {
 const t21Shown = (S, q) => t21Val(S.hands[q].filter((_, i) => i !== 1));
 function t21Render(S) {
   if (!mgAlive(S)) return;
-  const myTurn = S.cur === 0 && !!S.wait && !S.over;
+  const myTurn = S.cur === S.me && !!S.wait && !S.over;
   const seat = (p, k) => {
-    const hd = S.hands[p] || [], open = p === 0 || S.show, v = t21Val(hd);
+    const hd = S.hands[p] || [], open = p === S.me || S.show, v = t21Val(hd);
     return h('div', {class: 't21seat s-' + (k || '') + (S.cur === p ? ' on' : '') + (S.bust[p] ? ' bust' : '')},
       mgSeat(S, p, `${S.score[p]} / ${S.goal}`, {on: S.cur === p}),
       h('div', {class: 't21hand'}, ...hd.map((c, i) => mgCardEl(c, '', !open && i === 1))),
@@ -13807,8 +14219,8 @@ function t21Render(S) {
   };
   mgEl.innerHTML = '';
   mgEl.append(mgTop(S, 'ورق 21', h('small', {class: 'mgtag'}, `جولة ${S.round || 1}`)),
-    mgRing(S, (p, k) => seat(p, k), h('div', {class: 't21mid'}, h('div', {class: 'kc lux t21deck', style: `background-image:url("${backSrc(PROFILE.eq.back === 'classic' ? 'clred' : PROFILE.eq.back)}")`}), h('b', {class: 'unoinfo'}, S.over ? '' : myTurn ? 'دورك: اسحب لو اكفي؟' : S.cur > 0 ? `دور ${S.pl[S.cur].name}` : ''))),
-    seat(0, 'me'),
+    mgRing(S, (p, k) => seat(p, k), h('div', {class: 't21mid'}, h('div', {class: 'kc lux t21deck', style: `background-image:url("${backSrc(PROFILE.eq.back === 'classic' ? 'clred' : PROFILE.eq.back)}")`}), h('b', {class: 'unoinfo'}, S.over ? '' : myTurn ? 'دورك: اسحب لو اكفي؟' : S.cur >= 0 && S.cur !== S.me ? `دور ${S.pl[S.cur].name}` : ''))),
+    seat(S.me, 'me'),
     h('div', {class: 'unobtns'}, myTurn ? h('button', {type: 'button', class: 'btn primary', onclick: () => S.wait && S.wait('hit')}, '➕ اسحب') : '', myTurn ? h('button', {type: 'button', class: 'btn gold', onclick: () => S.wait && S.wait('stand')}, '✋ اكفي') : ''));
   if (MG_CLK) mgEl.append(MG_CLK.bar);
 }
@@ -13960,21 +14372,24 @@ window.__solHintOnly = S => solHint(S);
 const MH_CH = ['tracksuit', 'old', 'mustache', 'young', 'heavy', 'shirt'];
 const MH_FIST = {tracksuit: 51.5, old: 60, mustache: 62.5, young: 57.5, heavy: 57, shirt: 56.5};   // the height of each figure's fists (% of its picture)
 const MH_TELL = ['😅', '😬', '👀', '😳'], MH_CALM = ['🙂', '😐', '😏', '🤨'];
-MG.mheibes = {name: 'محيبس', bg: 'diwaniya', sizes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], players: o => 2 * (o.mode === 'tutorial' ? 2 : Math.min(10, Math.max(1, o.count || 3))), start: mhStart,
+MG.mheibes = {netSeat: (k, n) => k % 2 ? n / 2 + (k - 1) / 2 : k / 2, name: 'محيبس', bg: 'diwaniya', sizes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], players: o => 2 * (o.mode === 'tutorial' ? 2 : Math.min(10, Math.max(1, o.count || 3))), start: mhStart,
   rules: ['فريقين: فريق يخبي المحبس بإيد وحدة من إيدين لاعبيه، والفريق الثاني «البات» مالته يدوّره.', 'البات يفتح الإيدين: يكول «طلّع» للإيد اللي يعتقدها فاضية، و«بات» للإيد اللي يعتقد بيها المحبس.',
     'إذا كال «بات» على إيد المحبس: نقطة لفريقه وياخذون المحبس. إذا كال «طلّع» على إيد المحبس أو «بات» على إيد فاضية: نقطة للفريق اللي مخبيه.', 'ركز بالوجوه: اللي ماسك المحبس أحياناً يتوتر 😅، بس الجهاز الصعب يعرف يتمثل.',
     'أول فريق يوصل 21 يفوز (السريعة 11).']};
 function mhStart(S) {
   const n = S.pl.length / 2, MEN = mgShuffle(['أبو علي', 'سجاد', 'مرتضى', 'حيدر', 'مصطفى', 'كرار', 'عباس', 'حسين', 'أبو جاسم', 'علي', 'محمد', 'جعفر', 'أبو حسن', 'منتظر', 'باقر', 'أبو سيف', 'ياسر', 'سيف', 'أمير', 'أبو مهدي']);
-  S.pl.forEach((p, i) => { if (i) p.name = MEN[i - 1]; p.sl = MH_SLEEVE[(i + Math.floor(Math.random() * 5)) % 5]; });
+  const MEN2 = mgShuffle(MEN.slice().sort(), S.rnd).filter(x => !S.pl.some(p => p.friend && p.name === x));
+  S.pl.forEach((p, i) => { if (i !== S.me && !p.friend) p.name = MEN2[i]; p.sl = MH_SLEEVE[(i + Math.floor(S.rnd() * 5)) % 5]; });
   S.pl.forEach((p, i) => { p.ch = MH_CH[(i + (i >= n ? 3 : 0)) % MH_CH.length]; });
-  Object.assign(S, {n, goal: S.mode === 'quick' || S.mode === 'tutorial' ? 11 : 21, score: [0, 0], hold: Math.random() < .5 ? 0 : 1, ring: null, open: {}, tells: {}, phase: 'hide', last: null});
+  Object.assign(S, {n, goal: S.mode === 'quick' || S.mode === 'tutorial' ? 11 : 21, score: [0, 0], hold: S.rnd() < .5 ? 0 : 1, MT: S.me < n ? 0 : 1, ring: null, open: {}, tells: {}, phase: 'hide', last: null});
   if (S.mode === 'tutorial') setTimeout(() => mgRules(S.k), 300);
   S.tiv = setInterval(() => { if (!mgAlive(S)) return clearInterval(S.tiv); mhTells(S); }, 1600);
   mhLoop(S);
 }
 const mhTeam = (S, t) => S.pl.map((_, i) => i).filter(i => (i < S.n) === (t === 0));   // team 0: me and my mates (seats 0..n-1)
 const mhHands = (S, t) => mhTeam(S, t).flatMap(i => [i * 2, i * 2 + 1]);   // a hand = seat*2 + (0 right, 1 left)
+// who plays for a team: its first real player (me, a friend), else its first seat (the device)
+const mhCap = (S, t) => { const T = mhTeam(S, t); return T.find(i => S.pl[i].human || S.pl[i].friend && !S.pl[i].left) ?? T[0]; };
 // the faces: the ring's holder shows a tell now and then; the others sometimes look nervous too
 function mhTells(S) {
   if (S.phase !== 'find' || S.ring == null) { if (Object.keys(S.tells).length) { S.tells = {}; mhRender(S); } return; }
@@ -13982,7 +14397,7 @@ function mhTells(S) {
   const pT = [.55, .38, .26][lv], pF = [.06, .14, .22][lv];
   S.tells = {};
   for (const i of mhTeam(S, S.hold)) {
-    if (i === 0) continue;   // my own face shows nothing
+    if (i === S.me || S.pl[i].friend) continue;   // a real player's face shows nothing
     const r = Math.random();
     if (i === holder ? r < pT : r < pF) S.tells[i] = mgPick(MH_TELL); else if (r > .8) S.tells[i] = mgPick(MH_CALM);
   }
@@ -13992,22 +14407,23 @@ async function mhLoop(S) {
   try {
     while (mgAlive(S) && !S.over) {
       S.open = {}; S.ring = null; S.phase = 'hide'; S.tells = {}; mhRender(S);
-      // hiding: my team → I pick the fist; their team → the device hides it
-      if (S.hold === 0) {
-        mgSay('فريقك ماسك المحبس: اختار الإيد اللي تخبيه بيها', 1600);
-        S.ring = await new Promise(res => { S.wait = x => { S.wait = null; mgClockStop(); res(x); }; mgClockStart(S, () => S.wait && S.wait(mgPick(mhHands(S, 0))), 20000); mhRender(S); });
-      } else { await mgWait(S, 900); S.ring = mgPick(mhHands(S, 1)); mgSay('الفريق الثاني خبّى المحبس… انت البات 🔍', 1500); }
+      // hiding: the holding team's player picks the fist (me, a friend, or the device)
+      const hc = mhCap(S, S.hold), H = mhHands(S, S.hold);
+      if (hc === S.me) mgSay('فريقك ماسك المحبس: اختار الإيد اللي تخبيه بيها', 1600);
+      const rg = await mgTurn(S, hc, () => new Promise(res => { S.wait = x => { S.wait = null; mgClockStop(); res(x); }; mgClockStart(S, () => S.wait && S.wait(mgPick(H)), 20000); mhRender(S); }), async () => { await mgWait(S, 900); return mgPick(H); });
       if (!mgAlive(S)) return;
+      S.ring = H.includes(rg) ? rg : H[0];
+      if (S.hold !== S.MT) mgSay(mhCap(S, 1 - S.hold) === S.me ? 'الفريق الثاني خبّى المحبس… انت البات 🔍' : 'الفريق الثاني خبّى المحبس 🔍', 1500);
       S.phase = 'find'; mhTells(S); mhRender(S); await mgWait(S, 600);
       // finding: the other team's «بات» opens the fists
       let res = null;
       while (res == null && mgAlive(S)) {
         const left = mhHands(S, S.hold).filter(x => !S.open[x]);
-        let act;
-        if (S.hold === 1) act = await new Promise(r => { S.wait = x => { S.wait = null; mgClockStop(); r(x); }; mgClockStart(S, () => S.wait && S.wait(mhBot(S, left)), 25000); mhRender(S); });
-        else { await mgWait(S, 1100 + Math.random() * 700); act = mhBot(S, left); }
+        const fc = mhCap(S, 1 - S.hold);
+        let act = await mgTurn(S, fc, () => new Promise(r => { S.wait = x => { S.wait = null; mgClockStop(); r(x); }; mgClockStart(S, () => S.wait && S.wait(mhBot(S, left)), 25000); mhRender(S); }), async () => { await mgWait(S, 1100 + Math.random() * 700); return mhBot(S, left); });
         if (!mgAlive(S)) return;
-        const who = S.hold === 1 ? 'انت' : S.pl[S.n].name;
+        if (!act || !['fak', 'out', 'bat'].includes(act.k)) act = {k: 'bat', h: left[0]};
+        const who = fc === S.me ? 'انت' : S.pl[fc].name;
         if (act.k === 'fak') {   // «فكّ»: both hands of one player open at once (as «طلّع» on both)
           const hs = [act.p * 2, act.p * 2 + 1]; hs.forEach(x => { S.open[x] = true; }); try { SFX.play('cardplay', .5); } catch (e) {}
           if (hs.includes(S.ring)) { res = 'hold'; mgSay(`${who} فكّ إيدين ${S.pl[act.p].name} وطلع المحبس بيها! 😂`, 1900); }
@@ -14025,11 +14441,11 @@ async function mhLoop(S) {
         }
       }
       if (!mgAlive(S)) return;
-      S.phase = 'show'; S.tells = {}; mhRender(S); try { SFX.play(res === 'find' ? (S.hold === 1 ? 'win' : 'lose') : (S.hold === 0 ? 'win' : 'lose'), .45); } catch (e) {}
+      S.phase = 'show'; S.tells = {}; mhRender(S); try { SFX.play(res === 'find' ? (S.hold !== S.MT ? 'win' : 'lose') : (S.hold === S.MT ? 'win' : 'lose'), .45); } catch (e) {}
       const t = res === 'find' ? 1 - S.hold : S.hold; S.score[t]++; S.last = t;
       if (res === 'find') S.hold = 1 - S.hold;
       await mgWait(S, 2200);
-      if (S.score[t] >= S.goal) { S.over = true; clearInterval(S.tiv); mhRender(S); return mgEnd(S, t === 0, t === 0 ? 'فاز فريقك 🏆' : 'فاز الفريق الثاني', [`${S.score[0]} — ${S.score[1]}`]); }
+      if (S.score[t] >= S.goal) { S.over = true; clearInterval(S.tiv); mhRender(S); return mgEnd(S, t === S.MT, t === S.MT ? 'فاز فريقك 🏆' : 'فاز الفريق الثاني', [`${S.score[S.MT]} — ${S.score[1 - S.MT]}`]); }
     }
   } catch (e) { console.error('mheibes', e); }
 }
@@ -14037,7 +14453,7 @@ async function mhLoop(S) {
 function mhBot(S, left) {
   const holder = S.ring != null ? Math.floor(S.ring / 2) : -1, lv = S.diff === 'easy' ? 0 : S.diff === 'hard' ? 2 : 1;
   // what it «sees»: a bot holder on my team gives a tell sometimes; my own hands give nothing
-  const w = left.map(x => { const i = Math.floor(x / 2); let v = 1 + Math.random() * .6; if (i === holder && i !== 0 && Math.random() < [.35, .5, .62][lv]) v += 2.2; if (S.tells[i] && MH_TELL.includes(S.tells[i])) v += .8; return v; });
+  const w = left.map(x => { const i = Math.floor(x / 2); let v = 1 + Math.random() * .6; if (i === holder && !S.pl[i].human && !S.pl[i].friend && Math.random() < [.35, .5, .62][lv]) v += 2.2; if (S.tells[i] && MH_TELL.includes(S.tells[i])) v += .8; return v; });
   const best = left[w.indexOf(Math.max(...w))], low = left[w.indexOf(Math.min(...w))];
   const sure = Math.max(...w) > 2.6 || left.length <= 2 || Math.random() < .14;
   return sure ? {k: 'bat', h: best} : {k: 'out', h: low};
@@ -14050,20 +14466,20 @@ const MH_SLEEVE = ['white', 'black', 'grey', 'blue', 'pat'];
 function mhPerson(S, i) {
   const p = S.pl[i], tm = i < S.n ? 0 : 1, holdTeam = tm === S.hold, hands = [i * 2, i * 2 + 1], sl = p.sl || MH_SLEEVE[i % MH_SLEEVE.length];
   const fist = (x, side) => {
-    const opened = S.open[x] || (S.phase === 'show' && holdTeam), mine = S.hold === 0 && tm === 0 && S.phase !== 'hide' && x === S.ring;
+    const opened = S.open[x] || (S.phase === 'show' && holdTeam), mine = S.hold === S.MT && tm === S.MT && S.phase !== 'hide' && x === S.ring;
     const ring = x === S.ring && opened;
-    const canHide = S.phase === 'hide' && S.hold === 0 && tm === 0 && !!S.wait, canFind = S.phase === 'find' && S.hold === 1 && tm === 1 && !S.open[x] && !!S.wait;
+    const canHide = S.phase === 'hide' && S.hold === S.MT && tm === S.MT && !!S.wait, canFind = S.phase === 'find' && S.hold !== S.MT && tm !== S.MT && !S.open[x] && !!S.wait;
     const pic = ngImg(`mhh_${sl}_${ring ? 'ring' : opened ? 'open' : 'fist'}`);
-    return h('button', {type: 'button', class: 'mhf2 ' + side + (opened ? ' open' : '') + (mine ? ' mine' : '') + (canHide || canFind ? ' go' : ''), disabled: !(canHide || canFind), 'aria-label': `${side === 'r' ? 'الإيد اليمنى' : 'الإيد اليسرى'} مال ${i ? p.name : 'انت'}`,
+    return h('button', {type: 'button', class: 'mhf2 ' + side + (opened ? ' open' : '') + (mine ? ' mine' : '') + (canHide || canFind ? ' go' : ''), disabled: !(canHide || canFind), 'aria-label': `${side === 'r' ? 'الإيد اليمنى' : 'الإيد اليسرى'} مال ${i !== S.me ? p.name : 'انت'}`,
       onclick: () => { if (canHide) S.wait(x); else if (canFind) mhAsk(S, x); }},
       h('img', {src: pic, alt: '', draggable: 'false'}), mine ? h('i', {class: 'mhmine'}, '💍') : '');
   };
-  const canFak = S.phase === 'find' && S.hold === 1 && tm === 1 && !!S.wait && !S.open[hands[0]] && !S.open[hands[1]];
+  const canFak = S.phase === 'find' && S.hold !== S.MT && tm !== S.MT && !!S.wait && !S.open[hands[0]] && !S.open[hands[1]];
   const nervous = S.tells[i] && MH_TELL.includes(S.tells[i]);
   return h('div', {class: 'mhp2' + (nervous ? ' shake' : '') + (holdTeam && S.phase === 'find' ? ' hold' : '')},
     nervous ? h('i', {class: 'mhtell'}, '💧') : '',
     h('div', {class: 'mhhands2', dir: 'ltr'}, fist(hands[1], 'l'), fist(hands[0], 'r')),
-    h('b', {class: 'mhnm'}, i ? p.name : 'انت'),
+    h('b', {class: 'mhnm'}, i !== S.me ? p.name : 'انت'),
     canFak ? h('button', {type: 'button', class: 'mhfak', onclick: () => S.wait && S.wait({k: 'fak', p: i})}, 'فكّ ✋✋') : '');
 }
 function mhAsk(S, x) {
@@ -14077,16 +14493,20 @@ function mhAsk(S, x) {
 function mhRender(S) {
   if (!mgAlive(S)) return;
   const row = t => h('div', {class: 'mhrow', style: `--cols:${S.n <= 3 ? S.n : S.n <= 4 ? 2 : S.n <= 6 ? 3 : S.n <= 8 ? 4 : 5}`}, ...mhTeam(S, t).map(i => mhPerson(S, i)));
-  const info = S.over ? '' : S.phase === 'hide' ? (S.hold === 0 ? 'اضغط على إيد من إيدين فريقك تخبي بيها المحبس' : 'الفريق الثاني ديخبي المحبس…')
-    : S.phase === 'find' ? (S.hold === 1 ? 'انت البات: اضغط على إيد وكول طلّع لو بات' : `${S.pl[S.n].name} البات ديدوّر بإيدينكم…`) : (S.last === 0 ? 'النقطة لفريقك 👏' : 'النقطة للفريق الثاني');
+  const MT = S.MT, OT = 1 - MT, hc = mhCap(S, S.hold), fc = mhCap(S, 1 - S.hold);
+  const info = S.over ? '' : S.phase === 'hide' ? (S.hold === MT ? (hc === S.me ? 'اضغط على إيد من إيدين فريقك تخبي بيها المحبس' : `${S.pl[hc].name} ديخبي المحبس…`) : 'الفريق الثاني ديخبي المحبس…')
+    : S.phase === 'find' ? (fc === S.me ? 'انت البات: اضغط على إيد وكول طلّع لو بات' : S.hold === MT ? `${S.pl[fc].name} البات ديدوّر بإيدينكم…` : `${S.pl[fc].name} البات ديدوّر…`) : (S.last === MT ? 'النقطة لفريقك 👏' : 'النقطة للفريق الثاني');
   mgEl.innerHTML = '';
-  mgEl.append(mgTop(S, 'محيبس', h('b', {class: 'mhsc'}, `${S.score[0]} — ${S.score[1]}`)),
-    h('div', {class: 'mhlab'}, 'الفريق الثاني', S.hold === 1 ? ' 💍' : ''), row(1),
+  mgEl.append(mgTop(S, 'محيبس', h('b', {class: 'mhsc'}, `${S.score[MT]} — ${S.score[OT]}`)),
+    h('div', {class: 'mhlab'}, 'الفريق الثاني', S.hold === OT ? ' 💍' : ''), row(OT),
     h('div', {class: 'mhmid'}, h('b', {class: 'unoinfo'}, info), h('small', {class: 'mgln'}, `لحد ${S.goal}`)),
-    h('div', {class: 'mhlab'}, 'فريقك', S.hold === 0 ? ' 💍' : ''), row(0));
+    h('div', {class: 'mhlab'}, 'فريقك', S.hold === MT ? ' 💍' : ''), row(MT));
   if (MG_CLK) mgEl.append(MG_CLK.bar);
 }
 window.__mhBot = S => mhBot(S, mhHands(S, S.hold).filter(x => !S.open[x])); window.__mhHands = (S, t) => mhHands(S, t);
+
+window.__mhMine = S => (S.phase === 'hide' && mhCap(S, S.hold) === S.me) || (S.phase === 'find' && mhCap(S, 1 - S.hold) === S.me);
+window.__mhAuto = S => S.phase === 'hide' ? mhHands(S, S.hold)[1] : mhBot(S, mhHands(S, S.hold).filter(x => !S.open[x]));
 
 // ---------- 8.1 بليارد (كرة الثمانية) ----------
 // two players, one frame. The first ball potted (after the break) gives the shooter his group: 1–7 (كاملة) or 9–15 (مخططة).
@@ -14100,18 +14520,18 @@ MG.billiard = {name: 'بليارد', bg: '', players: () => 2, fixed: () => 2, s
     'إذا دخلت كرة من كراتك تكمل دورك. إذا ما دخلت، الدور يروح للثاني.', 'الخطأ (البيضة تدخل، ما تضرب شي، أو تضرب كرات الخصم أو السودة أول) ينطي خصمك البيضة بإيده يحطها وين ما يريد.',
     'السودة (8) آخر وحدة: إذا دخلتها بوقتها تفوز، وإذا دخلتها قبل وقتها أو ويا البيضة تخسر.']};
 const blPockets = () => { const r = BL.r, L = BL.L; return [[-r * .4, -r * .4, 1.9], [1 + r * .4, -r * .4, 1.9], [-r * .9, L / 2, 1.65], [1 + r * .9, L / 2, 1.65], [-r * .4, L + r * .4, 1.9], [1 + r * .4, L + r * .4, 1.9]].map(([x, y, k]) => ({x, y, rr: k * r})); };
-function blRack() {
+function blRack(rnd) {
   const r = BL.r, b = [{n: 0, x: .5, y: BL.L * .76, vx: 0, vy: 0, on: true}];
   // the triangle: the apex on the foot spot, the 8 in the middle of the third row, a solid and a stripe in the back corners
   const order = [1, 9, 2, 10, 8, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15], rows = [], rest = order.filter(n => n !== 8 && n !== 1 && n !== 15 && n !== 7);
-  mgShuffle(rest);
+  mgShuffle(rest, rnd);
   const slots = []; for (let row = 0; row < 5; row++) for (let k = 0; k <= row; k++) slots.push([row, k]);
   const fixed = {0: 1, 4: 8, 10: 7, 14: 15};   // apex 1, the middle 8, the back corners one of each
   let ri = 0; slots.forEach(([row, k], i) => { const n = fixed[i] ?? rest[ri++]; rows.push({n, x: .5 + (k - row / 2) * 2.02 * r, y: BL.L * .26 - row * 1.76 * r, vx: 0, vy: 0, on: true}); });
   return b.concat(rows);
 }
 function blStart(S) {
-  Object.assign(S, {balls: blRack(), cur: Math.random() < .5 ? 0 : 1, grp: [null, null], aim: -Math.PI / 2, power: 0, phase: 'aim', inHand: false, broke: false, msg: ''});
+  Object.assign(S, {balls: blRack(S.rnd), cur: S.rnd() < .5 ? 0 : 1, grp: [null, null], aim: -Math.PI / 2, power: 0, phase: 'aim', inHand: false, broke: false, msg: ''});
   if (S.mode === 'tutorial') setTimeout(() => mgRules(S.k), 300);
   blBuild(S); blTurn(S);
 }
@@ -14143,7 +14563,7 @@ function blBuild(S) {
   bar.addEventListener('pointermove', e => { if (pull) setP(e); });
   bar.addEventListener('pointerup', () => { if (!pull) return; pull = false; const p = S.power; S.power = 0; thumb.style.top = '0%'; if (p > .04 && blMyAim(S) && S.wait) S.wait({aim: S.aim, power: p}); else blDraw(S); });
 }
-const blMyAim = S => S.cur === 0 && S.phase === 'aim' && !S.over && !!S.wait;
+const blMyAim = S => S.cur === S.me && S.phase === 'aim' && !S.over && !!S.wait;
 function blPlace(S, x, y) {   // the white in hand: anywhere free on the felt
   const r = BL.r, c = blCue(S); x = Math.max(r, Math.min(1 - r, x)); y = Math.max(r, Math.min(BL.L - r, y));
   if (S.balls.some(b => b.on && b.n && Math.hypot(b.x - x, b.y - y) < 2.05 * r)) return false; c.x = x; c.y = y; c.on = true; return true;
@@ -14152,13 +14572,18 @@ async function blTurn(S) {
   try {
     while (mgAlive(S) && !S.over) {
       S.phase = 'aim'; blHead(S); blDraw(S);
-      let shot;
-      if (S.cur === 0) shot = await new Promise(res => { S.wait = x => { S.wait = null; mgClockStop(); res(x); }; mgClockStart(S, () => S.wait && S.wait(blBot(S, true)), S.slow ? 40000 : 30000); blHead(S); });
-      else { await mgWait(S, 700); if (S.inHand) blBotPlace(S); blDraw(S); await mgWait(S, 500); shot = blBot(S); S.aim = shot.aim; for (let k = 0; k <= 10; k++) { S.power = shot.power * k / 10; blDraw(S); await mgWait(S, 35); } S.power = 0; }
+      // 8.5 the shot carries where the white was put and where every ball ends (worked out on the shooter's phone), so all phones end the same
+      const p = S.cur, c0 = blCue(S), at = [c0.x, c0.y];
+      let shot = await mgTurn(S, p, () => new Promise(res => { S.wait = x => { S.wait = null; mgClockStop(); res(blSeal(S, x)); }; mgClockStart(S, () => S.wait && S.wait(blBot(S, true)), S.slow ? 40000 : 30000); blHead(S); }),
+        async () => { await mgWait(S, 700); if (S.inHand) blBotPlace(S); blDraw(S); await mgWait(S, 500); const b = blBot(S); return blSeal(S, b); });
       if (!mgAlive(S)) return;
+      if (!shot || typeof shot.aim !== 'number') shot = blSeal(S, blBot(S, true));
+      if (shot.place) { c0.x = shot.place[0]; c0.y = shot.place[1]; c0.on = true; } else if (S.net) { c0.x = at[0]; c0.y = at[1]; }
+      if (p !== S.me) { S.aim = shot.aim; for (let k = 0; k <= 10; k++) { S.power = shot.power * k / 10; blDraw(S); await mgWait(S, 35); } S.power = 0; }
       S.inHand = false; S.phase = 'roll'; blHead(S);
-      const res = await blShoot(S, shot);
+      let res = await blShoot(S, shot);
       if (!mgAlive(S)) return;
+      if (shot.end) { shot.end.forEach((e, k) => { const b = S.balls[k]; if (b) { b.x = e[0]; b.y = e[1]; b.on = !!e[2]; b.vx = b.vy = 0; } }); const q = shot.res || res; res = {first: q.first == null ? null : q.first, pot: q.pot || [], cushion: !!q.cushion}; blDraw(S); }
       blJudge(S, res);
     }
   } catch (e) { console.error('billiard', e); }
@@ -14170,19 +14595,18 @@ function blShoot(S, shot) {
     c.vx = Math.cos(shot.aim) * V; c.vy = Math.sin(shot.aim) * V;
     try { SFX.play('hitchk', .35 + .5 * shot.power); } catch (e) {}
     const res = {first: null, pot: [], cushion: false}, P = blPockets();
-    let last = performance.now();
-    const frame = now => {
+    let guard = 0;
+    const frame = () => {
       if (!mgAlive(S)) return;
-      let dt = Math.min(.033, (now - last) / 1000); last = now;
-      const sub = 10, h_ = dt / sub; let moving = false;
+      const sub = 10, h_ = 1 / 60 / sub; let moving = false;
       for (let k = 0; k < sub; k++) moving = blStep(S, h_, res, P) || moving;
       blDraw(S);
-      if (moving) requestAnimationFrame(frame); else resolve(res);
+      if (moving && ++guard < 3000) requestAnimationFrame(frame); else resolve(res);
     };
     requestAnimationFrame(frame);
   });
 }
-function blStep(S, dt, res, P) {
+function blStep(S, dt, res, P, quiet) {
   const r = BL.r, L = BL.L, B = S.balls; let moving = false;
   for (const b of B) {
     if (!b.on) continue;
@@ -14192,7 +14616,7 @@ function blStep(S, dt, res, P) {
     b.x += b.vx * dt; b.y += b.vy * dt;
     // a pocket?
     const pk = P.find(p => Math.hypot(b.x - p.x, b.y - p.y) < p.rr);
-    if (pk) { b.on = false; b.vx = b.vy = 0; res.pot.push(b.n); try { SFX.play('bearoff', .5); } catch (e) {} continue; }
+    if (pk) { b.on = false; b.vx = b.vy = 0; res.pot.push(b.n); if (!quiet) try { SFX.play('bearoff', .5); } catch (e) {} continue; }
     // the cushions (with gaps at the pockets)
     const nearP = P.some(p => Math.hypot(b.x - p.x, b.y - p.y) < p.rr * 1.55);
     if (!nearP) {
@@ -14212,8 +14636,19 @@ function blStep(S, dt, res, P) {
       } } }
   return moving;
 }
+// the shot worked out without drawing: where the white was put, and where every ball stops
+function blSeal(S, shot) {
+  if (!shot) return shot;
+  const c = blCue(S), keep = S.balls.map(b => ({...b})), res = {first: null, pot: [], cushion: false}, P = blPockets();
+  const out = {aim: shot.aim, power: shot.power, place: [c.x, c.y]};
+  const V = 4.2 * (.15 + .85 * shot.power); c.vx = Math.cos(shot.aim) * V; c.vy = Math.sin(shot.aim) * V;
+  for (let f = 0; f < 3000; f++) { let moving = false; for (let k = 0; k < 10; k++) moving = blStep(S, 1 / 600, res, P, true) || moving; if (!moving) break; }
+  out.end = S.balls.map(b => [b.x, b.y, b.on ? 1 : 0]); out.res = res;
+  S.balls.forEach((b, k) => Object.assign(b, keep[k]));
+  return out;
+}
 function blJudge(S, res) {
-  const p = S.cur, me = S.pl[p].human ? 'انت' : S.pl[p].name, before = blMine(S, p), scratch = res.pot.includes(0);
+  const p = S.cur, me = p === S.me ? 'انت' : S.pl[p].name, before = blMine(S, p), scratch = res.pot.includes(0);
   const eight = res.pot.includes(8), balls = res.pot.filter(n => n !== 0 && n !== 8);
   let foul = scratch || res.first == null, why = scratch ? 'البيضة دخلت' : res.first == null ? 'ما ضربت ولا كرة' : '';
   if (!foul && res.first != null) {
@@ -14226,17 +14661,17 @@ function blJudge(S, res) {
   if (eight) {
     const win = before === 'eight' && !foul;
     S.over = true; blHead(S);
-    const iWin = win ? p === 0 : p !== 0;
-    setTimeout(() => mgEnd(S, iWin, iWin ? "فزت 🏆" : `فاز ${S.pl[1].name}`, [win ? `${me} دخّل السودة بوقتها 🎱` : `${me} دخّل السودة ${foul ? 'ويا خطأ' : 'قبل وقتها'}`]), 900);
+    const iWin = win ? p === S.me : p !== S.me;
+    setTimeout(() => mgEnd(S, iWin, iWin ? "فزت 🏆" : `فاز ${S.pl[1 - S.me].name}`, [win ? `${me} دخّل السودة بوقتها 🎱` : `${me} دخّل السودة ${foul ? 'ويا خطأ' : 'قبل وقتها'}`]), 900);
     return;
   }
   // the groups are given by the first ball potted on an open table
   if (before === 'open' && !foul && balls.length) { const g = blType(balls[0]); S.grp[p] = g; S.grp[1 - p] = g === 'solid' ? 'stripe' : 'solid'; mgSay(`${me}: ${g === 'solid' ? 'الكاملة (1–7)' : 'المخططة (9–15)'}`, 1500); }
   const mine = S.grp[p], good = !foul && balls.some(n => !mine || blType(n) === mine);
   if (scratch) { const c = blCue(S); c.on = true; c.vx = c.vy = 0; c.x = .5; c.y = BL.L * .76; while (!blPlace(S, c.x, c.y)) c.y -= BL.r * 2.2; }
-  if (foul) { mgSay(`خطأ: ${why} · البيضة بإيد ${p === 0 ? S.pl[1].name : 'إيدك'}`, 1900); S.inHand = true; S.cur = 1 - p; }
+  if (foul) { mgSay(`خطأ: ${why} · البيضة بإيد ${p === S.me ? S.pl[1 - S.me].name : 'إيدك'}`, 1900); S.inHand = true; S.cur = 1 - p; }
   else if (!good) S.cur = 1 - p;
-  else if (p !== 0) mgSay(`${me} دخّل ويكمل`, 900);
+  else if (p !== S.me) mgSay(`${me} دخّل ويكمل`, 900);
   blHead(S); blDraw(S);
 }
 // the device's shot: for every ball it may hit and every pocket, the ghost-ball aim; it takes the easiest clear one
@@ -14273,8 +14708,8 @@ function blHead(S) {
   const seat = p => { const g = S.grp[p], left = g ? blLeft(S, g) : null;
     return h('div', {class: 'blseat' + (S.cur === p && !S.over ? ' on' : '')}, mgSeat(S, p, g ? (g === 'solid' ? 'الكاملة' : 'المخططة') + ` · باقي ${left}` : 'مفتوحة', {on: S.cur === p && !S.over}),
       h('div', {class: 'blmini'}, ...(g ? S.balls.filter(b => blType(b.n) === g).map(b => h('i', {class: b.on ? '' : 'in', style: `--c:${BL_COL[b.n > 8 ? b.n - 8 : b.n]}`}, b.n)) : []))); };
-  S.el.head.innerHTML = ''; S.el.head.append(seat(1), h('b', {class: 'blvs'}, 'ضد'), seat(0));
-  S.el.info.textContent = S.over ? '' : S.cur === 0 ? (S.phase === 'aim' ? (S.inHand ? 'البيضة بإيدك: اسحبها لمكان، وبعدين صوّب' : 'اسحب على الطاولة للاتجاه، واسحب القوة لجوة واتركها') : '') : `دور ${S.pl[1].name}`;
+  S.el.head.innerHTML = ''; S.el.head.append(seat(1 - S.me), h('b', {class: 'blvs'}, 'ضد'), seat(S.me));
+  S.el.info.textContent = S.over ? '' : S.cur === S.me ? (S.phase === 'aim' ? (S.inHand ? 'البيضة بإيدك: اسحبها لمكان، وبعدين صوّب' : 'اسحب على الطاولة للاتجاه، واسحب القوة لجوة واتركها') : '') : `دور ${S.pl[S.cur].name}`;
   S.el.bar.classList.toggle('on', blMyAim(S));
 }
 function blDraw(S) {
@@ -14285,7 +14720,7 @@ function blDraw(S) {
   if (cloth) { ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = .55; ctx.fillStyle = cloth; ctx.fillRect(X(-BL.r * .2), Y(-BL.r * .2), X(1 + BL.r * .2) - X(-BL.r * .2), Y(BL.L + BL.r * .2) - Y(-BL.r * .2)); ctx.restore(); }
   const c = blCue(S), aimOn = S.phase === 'aim' && !S.over && c.on;
   // the guide: from the white to the first ball it would touch (only on my turn)
-  if (aimOn && S.cur === 0) {
+  if (aimOn && S.cur === S.me) {
     const ux = Math.cos(S.aim), uy = Math.sin(S.aim); let tmin = 9, hit = null;
     for (const b of S.balls) { if (!b.on || b === c) continue; const bx = b.x - c.x, by = b.y - c.y, p = bx * ux + by * uy; if (p <= 0) continue; const q = bx * bx + by * by - p * p, rr = 4 * BL.r * BL.r; if (q > rr) continue; const t = p - Math.sqrt(rr - q); if (t < tmin) { tmin = t; hit = b; } }
     const wall = Math.min(ux > 0 ? (1 - BL.r - c.x) / ux : ux < 0 ? (BL.r - c.x) / ux : 9, uy > 0 ? (BL.L - BL.r - c.y) / uy : uy < 0 ? (BL.r - c.y) / uy : 9);
@@ -14295,7 +14730,7 @@ function blDraw(S) {
     if (hit) { const nx = hit.x - gx, ny = hit.y - gy, nl = Math.hypot(nx, ny); ctx.strokeStyle = 'rgba(255,230,120,.9)'; ctx.beginPath(); ctx.moveTo(X(hit.x), Y(hit.y)); ctx.lineTo(X(hit.x + nx / nl * .18), Y(hit.y + ny / nl * .18)); ctx.stroke(); }
   }
   for (const b of S.balls) if (b.on) blBall(ctx, X(b.x), Y(b.y), R, b.n, d);
-  if (S.inHand && S.cur === 0 && S.phase === 'aim') { ctx.beginPath(); ctx.arc(X(c.x), Y(c.y), R * 1.9, 0, 7); ctx.strokeStyle = 'rgba(255,213,74,.9)'; ctx.lineWidth = 2 * d; ctx.stroke(); }
+  if (S.inHand && S.cur === S.me && S.phase === 'aim') { ctx.beginPath(); ctx.arc(X(c.x), Y(c.y), R * 1.9, 0, 7); ctx.strokeStyle = 'rgba(255,213,74,.9)'; ctx.lineWidth = 2 * d; ctx.stroke(); }
   // the cue stick behind the white
   if (aimOn) { const im = blCueImg(); if (im.complete && im.naturalWidth) { const len = R * 22, back = R * (1.4 + S.power * 5); const hh = len * im.naturalHeight / im.naturalWidth; ctx.save(); ctx.translate(X(c.x), Y(c.y)); ctx.rotate(S.aim); ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 6 * d; ctx.drawImage(im, -back - len, -hh / 2, len, hh); ctx.restore(); } }
 }
@@ -14310,7 +14745,8 @@ function blBall(ctx, x, y, R, n, d) {
   ctx.fillStyle = g; ctx.fillRect(x - R, y - R, 2 * R, 2 * R); ctx.restore();
   if (n) { ctx.beginPath(); ctx.arc(x, y, R * .48, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.fillStyle = '#111'; ctx.font = `900 ${R * .62}px Tajawal,Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(n, x, y + R * .04); }
 }
-window.__blAuto = S => { if (!(S.cur === 0 && S.phase === 'aim' && S.wait)) return; if (S.inHand) blBotPlace(S); S.wait(blBot(S, true)); };
+window.__blShot = S => { if (S.inHand) blBotPlace(S); return blBot(S, true); };
+window.__blAuto = S => { if (!(S.cur === S.me && S.phase === 'aim' && S.wait)) return; if (S.inHand) blBotPlace(S); S.wait(blBot(S, true)); };
 
 // ---------- 8.4 مافيا ----------
 // 6–12 players. Roles: mafia (2, or 3 from 9 players), a doctor, a policeman, the rest citizens.
@@ -14323,15 +14759,19 @@ MG.mafia = {name: 'مافيا', bg: 'diwaniya', sizes: [6, 7, 8, 9, 10, 11, 12],
   rules: ['كل لاعب ياخذ دور بالسر: مافيا 🔪، طبيب 💉، شرطي 🕵️، أو مواطن 🧑.', 'بالليل: المافيا يختارون واحد يكتلوه، والطبيب ينقذ واحد (إذا اختار نفس الشخص ما يموت)، والشرطي يسأل عن واحد ويعرف إذا مافيا لو لا.',
     'بالنهار: يطلع منو مات ودوره، وبعدين النقاش بالجمل الجاهزة، وبعدها التصويت: اللي ياخذ أكثر أصوات يطلع (إذا تعادلوا محد يطلع).', 'المواطنين يفوزون إذا طلعوا كل المافيا، والمافيا يفوزون إذا صار عددهم مثل الباقين.']};
 function mfStart(S) {
-  const n = S.pl.length, nm = n <= 8 ? 2 : 3, roles = mgShuffle([...Array(nm).fill('m'), 'd', 'p', ...Array(n - nm - 2).fill('c')]);
+  const n = S.pl.length, nm = n <= 8 ? 2 : 3, roles = mgShuffle([...Array(nm).fill('m'), 'd', 'p', ...Array(n - nm - 2).fill('c')], S.rnd);
   Object.assign(S, {n, roles, alive: S.pl.map(() => true), day: 0, phase: 'intro', log: [], votes: {}, known: {}, sus: S.pl.map(() => S.pl.map(() => Math.random() * .3)), saidPol: false, last: null, accuser: {}, claimedPol: null});
   S.pl.forEach((p, i) => { p.role = roles[i]; });
   mfRender(S);
-  const r = roles[0], mates = r === 'm' ? S.pl.map((p, i) => i).filter(i => i && roles[i] === 'm').map(i => S.pl[i].name) : [];
+  S.onEv = (i, e) => mfEv(S, i, e);
+  const r = roles[S.me], mates = r === 'm' ? S.pl.map((p, i) => i).filter(i => i !== S.me && roles[i] === 'm').map(i => S.pl[i].name) : [];
+  let started = false; const go = () => { if (!started) { started = true; mfLoop(S); } };
+  if (S.net) setTimeout(() => { if (!started) { for (const o of ovStack.slice()) if (o._mf) o._close(null); go(); } }, 9000);   // online the night does not wait long
   modal((s, close) => {
     s.append(h('div', {class: 'mfcard'}, h('i', {}, MF_ROLE[r][1]), h('b', {}, `انت ${MF_ROLE[r][0]}`)),
       h('p', {style: 'text-align:center'}, {m: `تعرف جماعتك: ${mates.join(' و')}. اكتلوهم وحده وحده بالليل، وبالنهار لا تنكشف.`, d: 'كل ليلة تختار واحد تنقذه من المافيا، وتكدر تنقذ نفسك.', p: 'كل ليلة تسأل عن واحد وتعرف إذا مافيا، وبالنهار تكدر تكشفهم.', c: 'ما عندك قدرة بالليل، بس صوتك بالنهار يطلّع المافيا. ركّز بالكلام.'}[r]),
-      h('button', {type: 'button', class: 'btn primary', style: 'width:100%', onclick: () => { close(); mfLoop(S); }}, 'يلا نبدي'));
+      h('button', {type: 'button', class: 'btn primary', style: 'width:100%', onclick: () => { close(); go(); }}, 'يلا نبدي'));
+    s.parentNode._mf = true;
   }, {dismiss: false});
 }
 const mfLive = S => S.pl.map((_, i) => i).filter(i => S.alive[i]);
@@ -14346,28 +14786,26 @@ function mfPick(S, ask, ok, ms) {
 }
 async function mfLoop(S) {
   try {
+    const nm = i => i === S.me ? 'انت' : S.pl[i].name;
+    const human = i => i === S.me || (S.pl[i].friend && !S.pl[i].left);
     while (mgAlive(S) && !S.over) {
-      // ---- the night ----
+      // ---- the night ---- (each pick is a turn: the player who has the role, or the device for it)
       S.day++; S.phase = 'night'; S.votes = {}; mfSys(S, `🌙 الليلة ${S.day}: الكل نام…`); try { SFX.play('turn', .4); } catch (e) {}
       await mgWait(S, 1200);
-      const live = mfLive(S), me = S.alive[0] ? S.roles[0] : null;
-      // the mafia's victim
-      let kill;
-      if (me === 'm') kill = await mfPick(S, '🔪 اختار منو تكتلون الليلة', i => S.alive[i] && !mfIsM(S, i));
-      if (kill == null) kill = mfBotKill(S);
-      // the doctor
+      const live = mfLive(S), M = live.filter(i => mfIsM(S, i)), mc = M.find(human) ?? M[0];
+      let kill = await mgTurn(S, mc, () => mfPick(S, '🔪 اختار منو تكتلون الليلة', i => S.alive[i] && !mfIsM(S, i)), async () => { await mgWait(S, 500); return mfBotKill(S); });
+      if (kill == null || !S.alive[kill] || mfIsM(S, kill)) kill = S.net ? null : mfBotKill(S);
       const doc = live.find(i => S.roles[i] === 'd'); let save = null;
-      if (doc != null) save = doc === 0 ? await mfPick(S, '💉 اختار منو تنقذ الليلة', i => S.alive[i]) : mfBotSave(S, doc);
-      // the policeman
+      if (doc != null) save = await mgTurn(S, doc, () => mfPick(S, '💉 اختار منو تنقذ الليلة', i => S.alive[i]), async () => { await mgWait(S, 400); return mfBotSave(S, doc); });
       const pol = live.find(i => S.roles[i] === 'p');
       if (pol != null) {
-        const q = pol === 0 ? await mfPick(S, '🕵️ اختار منو تسأل عنه', i => S.alive[i] && i !== 0 && S.known[i] == null) : mfBotAsk(S, pol);
-        if (q != null) { S.known[q] = mfIsM(S, q); if (pol === 0) { mgSay(`${S.pl[q].name} ${S.known[q] ? 'مافيا 🔪!' : 'مو مافيا ✅'}`, 2200); await mgWait(S, 1600); } else S.polKnow = q; }
+        const q = await mgTurn(S, pol, () => mfPick(S, '🕵️ اختار منو تسأل عنه', i => S.alive[i] && i !== S.me && S.known[i] == null), async () => { await mgWait(S, 400); return mfBotAsk(S, pol); });
+        if (q != null && S.pl[q]) { S.known[q] = mfIsM(S, q); if (pol === S.me) { mgSay(`${S.pl[q].name} ${S.known[q] ? 'مافيا 🔪!' : 'مو مافيا ✅'}`, 2200); await mgWait(S, 1600); } else S.polKnow = q; }
       }
       if (!mgAlive(S)) return;
       // ---- the morning ----
       S.phase = 'day'; await mgWait(S, 600);
-      if (kill != null && kill !== save) { S.alive[kill] = false; S.last = kill; mfSys(S, `☀️ الصبح: لكوا ${kill === 0 ? 'انت' : S.pl[kill].name} مكتول… كان ${MF_ROLE[S.roles[kill]][0]} ${MF_ROLE[S.roles[kill]][1]}`); try { SFX.play('lose', .4); } catch (e) {} }
+      if (kill != null && kill !== save) { S.alive[kill] = false; S.last = kill; mfSys(S, `☀️ الصبح: لكوا ${nm(kill)} مكتول… كان ${MF_ROLE[S.roles[kill]][0]} ${MF_ROLE[S.roles[kill]][1]}`); try { SFX.play('lose', .4); } catch (e) {} }
       else mfSys(S, '☀️ الصبح: الطبيب أنقذ واحد، محد مات الليلة 💉');
       await mgWait(S, 1600);
       if (mfCheck(S)) return;
@@ -14375,15 +14813,19 @@ async function mfLoop(S) {
       S.phase = 'talk'; mfRender(S);
       await mfTalk(S);
       if (!mgAlive(S)) return;
-      // ---- the vote ----
+      // ---- the vote ---- (every player picks at once; the votes are counted in the seats' order)
       S.phase = 'vote'; S.votes = {}; mfSys(S, '🗳️ التصويت: منو يطلع؟');
-      const myVote = S.alive[0] ? await mfPick(S, '🗳️ صوّت على واحد يطلع (أو اتركها)', i => S.alive[i] && i !== 0, S.slow ? 25000 : 15000) : null;
-      if (myVote != null) { S.votes[0] = myVote; mfSay(S, 0, `صوّتت على ${S.pl[myVote].name}`); }
-      for (const i of mfLive(S)) if (i) { await mgWait(S, 380); const v = mfBotVote(S, i); if (v != null) { S.votes[i] = v; mfSay(S, i, `أصوّت على ${v === 0 ? 'انت' : S.pl[v].name}`); } }
+      const myP = S.alive[S.me] ? mfPick(S, '🗳️ صوّت على واحد يطلع (أو اتركها)', i => S.alive[i] && i !== S.me, S.slow ? 25000 : 15000) : null;
+      for (const i of mfLive(S)) {
+        const v = await mgTurn(S, i, () => myP, async () => { await mgWait(S, 380); return mfBotVote(S, i); });
+        if (!mgAlive(S)) return;
+        if (v != null && S.alive[v] && v !== i) { S.votes[i] = v; mfSay(S, i, i === S.me ? `صوّتت على ${S.pl[v].name}` : `أصوّت على ${nm(v)}`); }
+      }
+      S.ask = null; S.can = null;
       const cnt = {}; Object.values(S.votes).forEach(v => { cnt[v] = (cnt[v] || 0) + 1; });
       const top = Math.max(0, ...Object.values(cnt)), outs = Object.keys(cnt).filter(k => cnt[k] === top).map(Number);
       await mgWait(S, 800);
-      if (top && outs.length === 1) { const o = outs[0]; S.alive[o] = false; mfSys(S, `🚪 طلع ${o === 0 ? 'انت' : S.pl[o].name} بـ${top} أصوات… كان ${MF_ROLE[S.roles[o]][0]} ${MF_ROLE[S.roles[o]][1]}`);
+      if (top && outs.length === 1) { const o = outs[0]; S.alive[o] = false; mfSys(S, `🚪 طلع ${nm(o)} بـ${top} أصوات… كان ${MF_ROLE[S.roles[o]][0]} ${MF_ROLE[S.roles[o]][1]}`);
         S.pl.forEach((_, j) => { if (S.votes[j] === o) mfTrust(S, j, mfIsM(S, o) ? .25 : -.2); }); }
       else mfSys(S, '🤝 تعادل بالأصوات: محد طلع');
       await mgWait(S, 1800); S.pub = {};
@@ -14394,20 +14836,32 @@ async function mfLoop(S) {
 // the talk: each device says a line or two; I can say my phrases; then «خلص النقاش» (or the clock)
 async function mfTalk(S) {
   mfSys(S, '💬 النقاش: منو تشكون بيه؟');
-  // the citizens' hunch: each one, now and then, catches a mafia's slip (a harder device more)
-  const hunch = S.diff === 'easy' ? .25 : S.diff === 'hard' ? .5 : .38, M = mfLive(S).filter(j => mfIsM(S, j));
-  mfLive(S).forEach(i => { if (i && !mfIsM(S, i) && M.length && Math.random() < hunch) { const t = mgPick(M); S.sus[i][t] += .9; if (Math.random() < .6) mfAccuse(S, i, t, .3); } });
-  const live = mfLive(S).filter(i => i);
-  const done = new Promise(res => { S.talkEnd = () => { S.talkEnd = null; mgClockStop(); res(); }; mgClockStart(S, () => S.talkEnd && S.talkEnd(), S.slow ? 40000 : 25000); });
-  (async () => { for (const i of mgShuffle(live.slice())) { if (!S.talkEnd || !mgAlive(S)) return; await mgWait(S, 900 + Math.random() * 900); if (!S.talkEnd || !S.alive[i]) return; mfBotLine(S, i); } })();
+  const boss = !S.net || S.net.host;   // the device's players talk on one phone only (the host's), and their lines go to all
+  if (boss) {
+    const hunch = S.diff === 'easy' ? .25 : S.diff === 'hard' ? .5 : .38, M = mfLive(S).filter(j => mfIsM(S, j));
+    mfLive(S).forEach(i => { if (i !== S.me && !S.pl[i].friend && !mfIsM(S, i) && M.length && Math.random() < hunch) { const t = mgPick(M); S.sus[i][t] += .9; if (Math.random() < .6) mfAccuse(S, i, t, .3); } });
+  }
+  S.done = {};
+  const bots = mfLive(S).filter(i => i !== S.me && (!S.pl[i].friend || S.pl[i].left));
+  // the end of the talk is the host's turn (seat 0): his «خلص النقاش», the clock, or every real player done
+  const end = () => new Promise(res => { S.talkEnd = () => { S.talkEnd = null; mgClockStop(); res(1); }; S.talkDone = () => { const H = mfLive(S).filter(i => i === S.me || S.pl[i].friend && !S.pl[i].left); if (H.every(i => S.done[i]) && S.talkEnd) S.talkEnd(); };
+    mgClockStart(S, () => S.talkEnd && S.talkEnd(), S.slow ? 40000 : 25000); mfRender(S); });
+  if (S.net && !S.net.host) S.talkEnd = () => { mgEv(S, {k: 'done'}, () => {}); S.talkEnd = null; mfRender(S); };   // a friend's «خلص النقاش» tells the host
+  if (boss) (async () => { for (const i of mgShuffle(bots.slice())) { if (!mgAlive(S) || S.phase !== 'talk') return; await mgWait(S, 900 + Math.random() * 900); if (S.phase !== 'talk' || !S.alive[i]) return; const t = mfBotLine(S, i); if (t) { if (S.net) S.net.append({t: 'e', i, e: {k: 'say', t}}); else mfSay(S, i, t); } } })();
   mfRender(S);
-  await done;
+  await mgTurn(S, 0, end, end);
+  S.talkEnd = null; S.talkDone = null; S.phase = 'post'; mgClockStop(); mfRender(S);
+}
+// what came through the log in the talk: a line, «خلص النقاش»
+function mfEv(S, i, e) {
+  if (e.k === 'say' && typeof e.t === 'string') { mfSay(S, i, e.t.slice(0, 120)); if (e.acc != null && S.pl[e.acc]) mfAccuse(S, i, e.acc, e.claim ? 1.2 : .5); if (e.claim) S.claimedPol = i; }
+  else if (e.k === 'done') { S.done[i] = true; if (S.talkDone) S.talkDone(); }
 }
 // the device's mind: who it suspects
 function mfTop(S, i, not) { const L = mfLive(S).filter(j => j !== i && !(not || []).includes(j)); if (!L.length) return null; return L.sort((a, b) => S.sus[i][b] - S.sus[i][a])[0]; }
 function mfTrust(S, j, d) { S.pl.forEach((_, i) => { if (i !== j) S.sus[i][j] = Math.max(0, S.sus[i][j] - d * .5); }); }
 function mfBotKill(S) {
-  const L = mfLive(S).filter(i => !mfIsM(S, i) && !(S.day === 1 && i === 0 && mfLive(S).length > 3));   // not me on the first night (the game would be over for me at once)
+  const L = mfLive(S).filter(i => !mfIsM(S, i) && !(S.day === 1 && (i === S.me || S.pl[i].friend) && mfLive(S).length > 3));   // not me on the first night (the game would be over for me at once)
   // the one who talks about the mafia the most (a claimed policeman first)
   const pol = L.find(i => S.claimedPol === i); if (pol != null && Math.random() < .8) return pol;
   return L.sort((a, b) => (S.accuser[b] || 0) - (S.accuser[a] || 0) + (Math.random() - .5) * 2)[0];
@@ -14419,17 +14873,17 @@ function mfBotLine(S, i) {
   const lvl = S.diff === 'easy' ? .4 : S.diff === 'hard' ? .9 : .65;
   if (S.roles[i] === 'p') {   // a policeman who found a mafia tells it (a smart one waits for a sure one)
     const f = Object.keys(S.known).map(Number).find(k => S.known[k] && S.alive[k]);
-    if (f != null && Math.random() < lvl) { S.claimedPol = i; S.accuser[i] = (S.accuser[i] || 0) + 2; mfAccuse(S, i, f, 1.2); return mfSay(S, i, `أني الشرطي 🕵️ وسألت عن ${f === 0 ? 'انت' : S.pl[f].name}: طلع مافيا!`); }
+    if (f != null && Math.random() < lvl) { S.claimedPol = i; S.accuser[i] = (S.accuser[i] || 0) + 2; mfAccuse(S, i, f, 1.2); return `أني الشرطي 🕵️ وسألت عن ${S.pl[f].name}: طلع مافيا!`; }
   }
   if (mfIsM(S, i)) {   // the mafia pushes on a citizen (never on a mate)
-    const t = mfTop(S, i, mfLive(S).filter(j => mfIsM(S, j))); if (t == null) return;
-    if (S.claimedPol != null && S.alive[S.claimedPol] && Math.random() < .5) { mfAccuse(S, i, S.claimedPol, .4); return mfSay(S, i, `${S.claimedPol === 0 ? 'انت' : S.pl[S.claimedPol].name} يكذب، هو مو شرطي!`); }
+    const t = mfTop(S, i, mfLive(S).filter(j => mfIsM(S, j))); if (t == null) return null;
+    if (S.claimedPol != null && S.alive[S.claimedPol] && Math.random() < .5) { mfAccuse(S, i, S.claimedPol, .4); return `${S.pl[S.claimedPol].name} يكذب، هو مو شرطي!`; }
     mfAccuse(S, i, t, .5); S.accuser[i] = (S.accuser[i] || 0) + 1;
-    return mfSay(S, i, mgPick([`أشك بـ${t === 0 ? 'انت' : S.pl[t].name}، ساكت هواية 🤨`, `${t === 0 ? 'انت' : S.pl[t].name} كلامه ما يدخل العقل`, 'أني بريء والله، دوروا زين']));
+    return mgPick([`أشك بـ${S.pl[t].name}، ساكت هواية 🤨`, `${S.pl[t].name} كلامه ما يدخل العقل`, 'أني بريء والله، دوروا زين']);
   }
-  const t = mfTop(S, i); if (t == null) return;
+  const t = mfTop(S, i); if (t == null) return null;
   S.accuser[i] = (S.accuser[i] || 0) + 1; mfAccuse(S, i, t, .45);
-  mfSay(S, i, mgPick([`أشك بـ${t === 0 ? 'انت' : S.pl[t].name} 🤨`, `${t === 0 ? 'انت' : S.pl[t].name} يتهرب من الكلام`, 'خلونا نفكر زين قبل لا نصوّت', `أني مواطن، وأشوف ${t === 0 ? 'انت' : S.pl[t].name} مشبوه`]));
+  return mgPick([`أشك بـ${S.pl[t].name} 🤨`, `${S.pl[t].name} يتهرب من الكلام`, 'خلونا نفكر زين قبل لا نصوّت', `أني مواطن، وأشوف ${S.pl[t].name} مشبوه`]);
 }
 // a line pushes the others' suspicion (the mafia knows the truth, the town believes a bit)
 function mfAccuse(S, by, t, w) { S.pub = S.pub || {}; S.pub[t] = (S.pub[t] || 0) + w * (S.claimedPol === by ? 2 : 1); S.pl.forEach((_, i) => { if (i === by || i === t || mfIsM(S, i)) return; S.sus[i][t] += w * (S.roles[by] === 'p' && S.claimedPol === by ? 1.5 : .6) * (.6 + Math.random() * .8); }); }
@@ -14443,34 +14897,34 @@ function mfCheck(S) {
   const L = mfLive(S), m = L.filter(i => mfIsM(S, i)).length, town = L.length - m;
   if (m && m < town) return false;
   S.over = true; clearInterval(S.tiv); S.phase = 'end'; mfRender(S);
-  const mafiaWon = m > 0, iWon = mafiaWon === mfIsM(S, 0);
-  setTimeout(() => mgEnd(S, iWon, mafiaWon ? 'فازت المافيا 🔪' : 'فاز المواطنين 🎉', [`كان دورك: ${MF_ROLE[S.roles[0]][0]} ${MF_ROLE[S.roles[0]][1]}`, 'المافيا: ' + S.pl.map((p, i) => mfIsM(S, i) ? (i ? p.name : 'انت') : null).filter(Boolean).join('، ')]), 900);
+  const mafiaWon = m > 0, iWon = mafiaWon === mfIsM(S, S.me);
+  setTimeout(() => mgEnd(S, iWon, mafiaWon ? 'فازت المافيا 🔪' : 'فاز المواطنين 🎉', [`كان دورك: ${MF_ROLE[S.roles[S.me]][0]} ${MF_ROLE[S.roles[S.me]][1]}`, 'المافيا: ' + S.pl.map((p, i) => mfIsM(S, i) ? (i !== S.me ? p.name : 'انت') : null).filter(Boolean).join('، ')]), 900);
   return true;
 }
 // my lines in the talk
 function mfMine(S) {
-  if (S.phase !== 'talk' || !S.alive[0] || !S.talkEnd) return '';
-  const L = mfLive(S).filter(i => i), r = S.roles[0], f = Object.keys(S.known).map(Number).find(k => S.known[k] && S.alive[k]);
-  const say = (t, eff) => h('button', {type: 'button', class: 'mfph', onclick: () => { mfSay(S, 0, t); if (eff) eff(); }}, t);
+  if (S.phase !== 'talk' || !S.alive[S.me] || (!S.talkEnd && !S.net) || S.done && S.done[S.me]) return '';
+  const L = mfLive(S).filter(i => i !== S.me), r = S.roles[S.me], f = Object.keys(S.known).map(Number).find(k => S.known[k] && S.alive[k]);
+  const say = (t, acc, claim) => mgEv(S, {k: 'say', t, acc: acc == null ? null : acc, claim: !!claim}, () => mfEv(S, S.me, {k: 'say', t, acc, claim}));
+  const ph = (t, acc, claim, cls) => h('button', {type: 'button', class: 'mfph' + (cls ? ' ' + cls : ''), onclick: () => say(t, acc, claim)}, t);
   return h('div', {class: 'mfmine'},
-    h('div', {class: 'mfphs'}, say('أني بريء والله 🙏', () => mfTrust(S, 0, .05)), say('خلونا نفكر زين قبل لا نصوّت'),
-      r === 'p' && f != null ? say(`أني الشرطي: ${S.pl[f].name} مافيا! 🕵️`, () => { S.claimedPol = 0; mfAccuse(S, 0, f, 1.2); }) : ''),
-    h('div', {class: 'mfphs'}, ...L.map(t => h('button', {type: 'button', class: 'mfph sus', onclick: () => { mfSay(S, 0, `أشك بـ${S.pl[t].name} 🤨`); mfAccuse(S, 0, t, .5); }}, `أشك بـ${S.pl[t].name}`))),
-    h('button', {type: 'button', class: 'btn gold', onclick: () => S.talkEnd && S.talkEnd()}, 'خلص النقاش ⏭'));
+    h('div', {class: 'mfphs'}, ph('أني بريء والله 🙏'), ph('خلونا نفكر زين قبل لا نصوّت'), r === 'p' && f != null ? ph(`أني الشرطي: ${S.pl[f].name} مافيا! 🕵️`, f, true) : ''),
+    h('div', {class: 'mfphs'}, ...L.map(t => h('button', {type: 'button', class: 'mfph sus', onclick: () => say(`أشك بـ${S.pl[t].name} 🤨`, t)}, `أشك بـ${S.pl[t].name}`))),
+    h('button', {type: 'button', class: 'btn gold', onclick: () => { if (S.net && !S.net.host) { S.done[S.me] = true; mgEv(S, {k: 'done'}, () => {}); mfRender(S); } else if (S.net) { S.done[S.me] = true; S.talkDone && S.talkDone(); mfRender(S); } else S.talkEnd && S.talkEnd(); }}, 'خلص النقاش ⏭'));
 }
 function mfRender(S) {
   if (!mgAlive(S)) return;
-  const me = S.roles[0], meM = me === 'm';
+  const me = S.roles[S.me], meM = me === 'm';
   const seat = i => {
-    const p = S.pl[i], dead = !S.alive[i], can = S.can && S.can(i), show = dead || i === 0 || (meM && mfIsM(S, i)) || S.phase === 'end';
+    const p = S.pl[i], dead = !S.alive[i], can = S.can && S.can(i), show = dead || i === S.me || (meM && mfIsM(S, i)) || S.phase === 'end';
     const votes = Object.values(S.votes || {}).filter(v => v === i).length, knew = me === 'p' && S.known[i] != null;
-    return h('button', {type: 'button', class: 'mfseat' + (dead ? ' dead' : '') + (can ? ' go' : '') + (i === 0 ? ' me' : ''), disabled: !can, onclick: () => can && S.wait && S.wait(i)},
+    return h('button', {type: 'button', class: 'mfseat' + (dead ? ' dead' : '') + (can ? ' go' : '') + (i === S.me ? ' me' : ''), disabled: !can, onclick: () => can && S.wait && S.wait(i)},
       h('span', {class: 'mgav'}, h('img', {src: p.av, alt: ''}), votes ? h('i', {class: 'mgbd'}, votes) : ''),
-      h('b', {}, i ? p.name : 'انت'),
+      h('b', {}, i !== S.me ? p.name : 'انت'),
       show ? h('small', {class: 'mfr r-' + S.roles[i]}, MF_ROLE[S.roles[i]][1] + ' ' + MF_ROLE[S.roles[i]][0]) : knew ? h('small', {class: 'mfr ' + (S.known[i] ? 'r-m' : 'r-c')}, S.known[i] ? '🔪 مافيا' : '✅ بريء') : '',
       dead ? h('i', {class: 'mfx'}, '☠️') : '');
   };
-  const feed = h('div', {class: 'mffeed'}, ...S.log.slice(-6).map(x => h('div', {class: x.i == null ? 'sys' : x.i === 0 ? 'mine' : ''}, x.i != null ? h('b', {}, (x.i ? S.pl[x.i].name : 'انت') + ': ') : '', x.t)));
+  const feed = h('div', {class: 'mffeed'}, ...S.log.slice(-6).map(x => h('div', {class: x.i == null ? 'sys' : x.i === S.me ? 'mine' : ''}, x.i != null ? h('b', {}, (x.i !== S.me ? S.pl[x.i].name : 'انت') + ': ') : '', x.t)));
   mgEl.innerHTML = '';
   mgEl.classList.toggle('mfnight', S.phase === 'night');
   mgEl.append(mgTop(S, 'مافيا', h('small', {class: 'mgtag'}, `${MF_ROLE[me][1]} ${MF_ROLE[me][0]}`)),
