@@ -2022,6 +2022,10 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 .rclist{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .rcl{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(232,196,122,.35)}
 .rcl .e{font-size:30px}.rcl div{flex:1;display:flex;flex-direction:column}.rcl small{opacity:.8}
+.mhf2.bat{filter:drop-shadow(0 0 10px #ffd54a) drop-shadow(0 0 4px #ffd54a);animation:mhbat .8s infinite}
+@keyframes mhbat{50%{transform:scale(1.08)}}
+.cs2cols{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}.cs2cols button{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25)}.cs2cols button.on{border-color:#ffd54a;box-shadow:0 0 0 2px #ffd54a}
+.rcem2.em{display:inline-grid;place-items:center;width:46px;height:46px;border-radius:12px;font-size:28px}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -9596,7 +9600,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.6.4';
+const APP_VERSION = '8.6.5';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -12302,6 +12306,7 @@ function clubChFinish(r) {   // called from awardResult / when leaving
 
 // ---- a room with friends: pick friends, invite them, wait at the table; «بدء اللعبة» starts with whoever came (the device fills the rest) ----
 function friendsRoom(g, m, n, room) {
+  if (typeof rsFriendsRoom === 'function') return rsFriendsRoom(g, m, n, room);   // 8.6.5 the real friends: a real room and real invites
   const fr = PROFILE.friends.filter(x => !PROFILE.blocked.includes(x));
   if (!fr.length) return toast('ما عندك أصدقاء بعد. ضيف أصدقاء من صفحة الأصدقاء 👥', 2800);
   return modal((s, close) => {
@@ -12452,9 +12457,13 @@ var CUP_T = {
   grand: {name: 'البطولة الكبرى', fee: 3000, tables: 8, prize: 10000, second: 5000, ic: 'crown', sub: '8 طاولات · خروج المغلوب'},
 };
 var CUP_SHORT = {duel: 'مواجهة', small: 'صغيرة', grand: 'الكبرى'};
-function cupNeed(c) { return ({duel: 1, small: 2, grand: 8})[c.t] * 2 * (c.duo ? 2 : 1); }   // no CUP_T here: the home page draws this before the rest of the file has run
-function cupPrize(c) { return CUP_T[c.t].prize * (c.duo ? 2 : 1); }
-function cupPrize2(c) { return (CUP_T[c.t].second || 0) * (c.duo ? 2 : 1); }   // the runner-up (the grand tournament only)
+// 8.6.5 المحيبس in a tournament: one match of two teams (the small: 5 against 5, the grand: 10 against 10)
+function cupMh(c) { return !!c && c.g === 'mheibes'; }
+function cupTS(c) { return cupMh(c) ? ({duel: 1, small: 5, grand: 10})[c.t] : c.duo ? 2 : 1; }   // players on each side of a table
+function cupTables(c) { return cupMh(c) ? 1 : ({duel: 1, small: 2, grand: 8})[c.t]; }
+function cupNeed(c) { return cupTables(c) * 2 * cupTS(c); }   // no CUP_T here: the home page draws this before the rest of the file has run
+function cupPrize(c) { return CUP_T[c.t].prize * cupTS(c); }
+function cupPrize2(c) { return cupMh(c) ? 0 : (CUP_T[c.t].second || 0) * cupTS(c); }   // the runner-up (the grand tournament only)
 function cupAzTxt(c) { return c.az ? ` · لحد ${c.az}` : c.tay ? ` · ${c.tay} جولات` : ''; }
 var CUP_FIRST = ['علي', 'حسين', 'حيدر', 'مرتضى', 'سجاد', 'كرار', 'مصطفى', 'عباس', 'ياسر', 'أحمد', 'محمد', 'حسن', 'زيد', 'منتظر', 'أمير', 'باقر', 'جعفر', 'قاسم', 'رضا', 'مهدي', 'نور', 'زهراء', 'مريم', 'فاطمة', 'زينب', 'رسل', 'هبة', 'سارة', 'دعاء', 'آية'];
 var CUP_SUR = ['البغدادي', 'الكعبي', 'الموسوي', 'الحسيني', 'العبيدي', 'الجبوري', 'التميمي', 'الساعدي', 'الربيعي', 'الخفاجي', 'الشمري', 'العكيلي', 'الزبيدي', 'البصري', 'الحلي', 'النجفي'];
@@ -12503,11 +12512,11 @@ async function cupEnter(cfg, byInv) {   // create or join: pay (or use an invita
   return true;
 }
 function cupMeIdx(C2) { const C = C2 || PROFILE.cup; return C ? C.seats.findIndex(x => x.me) : -1; }
-function cupSide(C, i) { return C.duo ? [4 * i, 4 * i + 2] : [2 * i]; }   // players of a table's two sides: duo partners sit across
+function cupSide(C, i) { const t = cupTS(C); return Array.from({length: t}, (_, k) => 2 * t * i + 2 * k); }   // players of a table's two sides: duo partners sit across
 function cupBuild(C) {   // the first round: the tables in the order the players sat
   const T = CUP_T[C.t], R = [];
-  for (let n = T.tables; n >= 1; n = n / 2) R.push(Array.from({length: n}, () => ({a: null, b: null, w: null})));
-  R[0].forEach((m, i) => { m.a = C.duo ? [4 * i, 4 * i + 2] : [2 * i]; m.b = C.duo ? [4 * i + 1, 4 * i + 3] : [2 * i + 1]; });
+  for (let n = cupTables(C); n >= 1; n = n / 2) R.push(Array.from({length: n}, () => ({a: null, b: null, w: null})));
+  const t = cupTS(C); R[0].forEach((m, i) => { m.a = Array.from({length: t}, (_, k) => 2 * t * i + 2 * k); m.b = m.a.map(x => x + 1); });
   C.rounds = R; C.r = 0;
 }
 function cupMyMatch(C) { const me = cupMeIdx(C); if (!C || !C.rounds) return null; const R = C.rounds[C.r]; return R && R.find(m => (m.a && m.a.includes(me)) || (m.b && m.b.includes(me))) || null; }
@@ -12523,10 +12532,10 @@ function cupFinishRound(C) {   // the other tables of the round finish too
   C.rounds[C.r].forEach(m => { if (!m.w) m.w = Math.random() < .5 ? 'a' : 'b'; });
 }
 function cupHist(C, won, final) {
-  const T = CUP_T[C.t], share = cupPrize(C) / (C.duo ? 2 : 1);
+  const T = CUP_T[C.t], share = cupPrize(C) / cupTS(C);
   const opp = (() => { const m = C.rounds && C.rounds[C.r]; if (!m) return ''; const mm = cupMyMatch(C); if (!mm) return ''; const o = mm[cupMySide(mm) === 'a' ? 'b' : 'a']; return o ? o.map(i => C.seats[i].n).join(' و') : ''; })();
   const txt = won ? (final ? `فزت بالنهائي ضد ${opp}` : '') : C.r === C.rounds.length - 1 ? `خسرت النهائي ضد ${opp}` : C.r === 0 ? `خسرت ضد ${opp}` : `طلعت بالدور ${['الأول', 'الثاني', 'الثالث', 'الرابع'][C.r]}`;
-  const sec = !won && C.r === C.rounds.length - 1 ? cupPrize2(C) / (C.duo ? 2 : 1) : 0;
+  const sec = !won && C.r === C.rounds.length - 1 ? cupPrize2(C) / cupTS(C) : 0;
   PROFILE.cupHist = [{t: C.t, g: C.g, txt: txt + (sec ? ' · المركز الثاني 🥈' : ''), v: won ? share : sec ? sec : -C.fee, w: !!won || !!sec, inv: C.inv, at: Date.now()}].concat(PROFILE.cupHist || []).slice(0, 30);
 }
 // my game at the tournament table ended (from awardResult, or I left in the middle)
@@ -12537,9 +12546,9 @@ function cupGameEnd(won, byBot) {
   if (!byBot) C.seats[cupMeIdx()].away = false;
   cupFinishRound(C);
   const final = C.r === C.rounds.length - 1;
-  if (!won && final && cupPrize2(C)) { const sec = cupPrize2(C) / (C.duo ? 2 : 1); giveReward({c: sec}, `المركز الثاني بـ${cupTitle(C)} 🥈`, 'cup'); }
+  if (!won && final && cupPrize2(C)) { const sec = cupPrize2(C) / cupTS(C); giveReward({c: sec}, `المركز الثاني بـ${cupTitle(C)} 🥈`, 'cup'); }
   if (!won) { C.out = true; cupHist(C, false); notify(`${cupTitle(C)}: ${final ? 'خسرت النهائي، المركز الثاني 🥈' : 'طلعت من المسابقة'}`, '🏆', 'cup'); C.done = Date.now() + (final ? 0 : 25e3); if (final) C.ph = 'done'; }
-  else if (final) { C.ph = 'done'; C.champ = true; cupHist(C, true, true); const share = cupPrize(C) / (C.duo ? 2 : 1); giveReward({c: share}, `فزت بـ${cupTitle(C)} 🏆`, 'cup'); }
+  else if (final) { C.ph = 'done'; C.champ = true; cupHist(C, true, true); const share = cupPrize(C) / cupTS(C); giveReward({c: share}, `فزت بـ${cupTitle(C)} 🏆`, 'cup'); }
   else {
     cupAdvance(C); const last = C.rounds.length - 1;
     if (!byBot) setTimeout(() => toast(`✅ عبرت ${C.r === last ? 'للنهائي 🏆' : C.r === last - 1 ? 'لنصف النهائي' : 'للدور ' + ['الأول', 'الثاني', 'الثالث'][C.r]}`, 2400), 600);
@@ -12614,15 +12623,18 @@ function cupSheet(tab) {
         const games = PLAYV_VS.filter(g => !st.duo || g.modes.includes('team'));
         if (!games.some(g => g.id === st.g)) st.g = games[0].id;
         const tw = pvFind(st.g).k === 'tawla', T = CUP_T[st.t], az = pvFind(st.g).v === 'fives', tay = pvFind(st.g).v === 'tayara';
-        if (tw) st.duo = false;   // الطاولي فردي بس: the pairs choice goes away
+        const noTeam = !pvFind(st.g).modes.includes('team'), mh = st.g === 'mheibes';
+        if (tw || noTeam) st.duo = false;   // الطاولي and the games without pairs: فردي بس
         s.append(h('div', {class: 'qb-lb'}, 'نوع المسابقة'), types,
           h('div', {class: 'qb-lb'}, 'اللعبة'), h('div', {class: 'qb-games'}, games.map(g => h('button', {type: 'button', class: st.g === g.id ? 'on' : '', 'aria-pressed': st.g === g.id ? 'true' : 'false', onclick: () => { st.g = g.id; draw(); }}, g.name))),
           az && st.t !== 'duel' ? h('div', {class: 'qb-lb'}, 'الازنيف لحد') : '',
           az && st.t !== 'duel' ? h('div', {class: 'qb-two'}, [150, 250].map(n => h('button', {type: 'button', class: st.az === n ? 'on' : '', onclick: () => { st.az = n; draw(); }}, `لحد ${n}`))) : '',
           tay && st.t === 'duel' ? h('div', {class: 'qb-lb'}, 'الطيرة') : '',   // the duel's طيرة: 7 rounds flying at 2 points, or 10 rounds flying at 3
           tay && st.t === 'duel' ? h('div', {class: 'qb-two'}, [[7, 'نقطتين'], [10, '3 نقاط']].map(([n, f]) => h('button', {type: 'button', class: st.tay === n ? 'on' : '', onclick: () => { st.tay = n; draw(); }}, `${n} جولات · طيرة ${f}`))) : '',
-          st.t !== 'duel' && !tw ? h('div', {class: 'qb-lb'}, 'النوع') : '',
-          st.t !== 'duel' && !tw ? h('div', {class: 'qb-two'}, h('button', {type: 'button', class: !st.duo ? 'on' : '', onclick: () => { st.duo = false; draw(); }}, `فردي · ${cupNeed({t: st.t})} لاعبين · ${CUP_T[st.t].second ? 'الأول ' : ''}${CUP_T[st.t].prize.toLocaleString('en')}`),
+          st.t !== 'duel' && mh ? h('div', {class: 'qb-lb'}, 'النوع') : '',
+          st.t !== 'duel' && mh ? h('div', {class: 'qb-two'}, h('button', {type: 'button', class: 'on'}, `فريقين · ${cupTS({g: 'mheibes', t: st.t})} ضد ${cupTS({g: 'mheibes', t: st.t})} · مباراة وحدة`)) : '',
+          st.t !== 'duel' && !tw && !noTeam ? h('div', {class: 'qb-lb'}, 'النوع') : '',
+          st.t !== 'duel' && !tw && !noTeam ? h('div', {class: 'qb-two'}, h('button', {type: 'button', class: !st.duo ? 'on' : '', onclick: () => { st.duo = false; draw(); }}, `فردي · ${cupNeed({t: st.t})} لاعبين · ${CUP_T[st.t].second ? 'الأول ' : ''}${CUP_T[st.t].prize.toLocaleString('en')}`),
             h('button', {type: 'button', class: st.duo ? 'on' : '', onclick: () => { st.duo = true; draw(); }}, `زوجي · ${cupNeed({t: st.t, duo: true})} لاعبين · الفريق ${(CUP_T[st.t].prize * 2).toLocaleString('en')}`)) : '',
           h('div', {class: 'qb-row'}, h('span', {}, '🎙️ السماح بالتحدث', h('small', {}, st.voice ? 'اللاعبين يكدرون يحجون وهم يلعبون' : 'بدون صوت')),
             h('button', {type: 'button', class: 'q-sw' + (st.voice ? ' on' : ''), role: 'switch', 'aria-checked': st.voice ? 'true' : 'false', 'aria-label': 'السماح بالتحدث', onclick: () => { st.voice = !st.voice; draw(); }}, h('i', {}))),
@@ -12639,7 +12651,7 @@ function cupSheet(tab) {
           if (W) s.append(card(CUP_T[W.t].ic, cupTitle(W), `${W.duo ? 'زوجي 2 ضد 2' : 'فردي'} · طلعت منها`, '👁️ الطاولات الباقية شغّالة', `${W.seats.length}/${cupNeed(W)}`, cupPrize(W).toLocaleString('en'), [h('button', {type: 'button', class: 'qb-join', onclick: () => { close(); cupBracket(true); }}, '👁️ شاهد الطاولات')], false));
           if (!C && !W) s.append(h('div', {class: 'qb-note'}, 'ما عندك مسابقة شغّالة هسه. اعمل وحدة أو انضم من «الكل» 🏆'));
           else { const need = cupNeed(C);
-            s.append(card(CUP_T[C.t].ic, cupTitle(C), `${C.duo ? 'زوجي 2 ضد 2' : 'فردي'}${C.voice ? ' · 🎙️ بالصوت' : ''}${C.inv ? ' · 🎟️ بالدعوة' : ''}`,
+            s.append(card(CUP_T[C.t].ic, cupTitle(C), `${cupMh(C) && C.t !== 'duel' ? `فريقين ${cupTS(C)} ضد ${cupTS(C)}` : C.duo ? 'زوجي 2 ضد 2' : 'فردي'}${C.voice ? ' · 🎙️ بالصوت' : ''}${C.inv ? ' · 🎟️ بالدعوة' : ''}`,
               C.ph === 'fill' ? `⏳ ننتظر ${need - C.seats.length} ${need - C.seats.length === 1 ? 'لاعب' : 'لاعبين'}` : C.ph === 'ready' ? '✅ اكتملت! اضغط ابدأ' : C.seats[cupMeIdx()].away ? '🤖 الجهاز يلعب بدالك' : C.ph === 'play' && !C.entered ? '🏆 بدت! ادخل لطاولتك' : '🎮 المسابقة شغّالة',
               `${C.seats.length}/${need}`, cupPrize(C).toLocaleString('en'), [h('button', {type: 'button', class: 'qb-join', onclick: () => { close(); cupBracket(); }}, '🏆 افتح الطاولات')], true)); }
         } else cupRooms().filter(r => st.f === 'all' || r.t === st.f).forEach(r => {
@@ -12721,7 +12733,7 @@ function cupBracket(old) {
       s.innerHTML = '';
       const T = CUP_T[C.t], R = C.rounds, last = R.length - 1, need = cupNeed(C);
       const rtxt = C.ph === 'fill' ? 'التسجيل' : C.ph === 'ready' ? 'البداية' : C.ph === 'done' ? 'خلصت' : C.r === last ? 'النهائي' : ['الدور الأول', 'الدور الثاني', 'الدور الثالث'][C.r];
-      s.append(h('div', {class: 'qb-hd qb-sm'}, QI('trophys', 'qb-cup'), h('h3', {}, 'طاولات المسابقة')), h('div', {class: 'qb-sub'}, `${cupTitle(C)}${C.duo ? ' · زوجي' : C.t !== 'duel' ? ' · فردي' : ''}${C.voice ? ' · 🎙️' : ''}${C.t === 'duel' && gvK(C) !== 'domino' ? ' · جولة وحدة' : ''}`),
+      s.append(h('div', {class: 'qb-hd qb-sm'}, QI('trophys', 'qb-cup'), h('h3', {}, 'طاولات المسابقة')), h('div', {class: 'qb-sub'}, `${cupTitle(C)}${cupMh(C) && C.t !== 'duel' ? ` · ${cupTS(C)} ضد ${cupTS(C)}` : C.duo ? ' · زوجي' : C.t !== 'duel' ? ' · فردي' : ''}${C.voice ? ' · 🎙️' : ''}${C.t === 'duel' && gvK(C) !== 'domino' ? ' · جولة وحدة' : ''}`),
         h('div', {class: 'qb-plq'}, h('div', {}, h('small', {}, 'التسجيل'), h('b', {}, C.inv ? '🎟️' : T.fee.toLocaleString('en'))), h('div', {class: 'mid'}, h('small', {}, 'الجائزة'), h('b', {}, cupPrize(C).toLocaleString('en'))), h('div', {}, h('small', {}, 'الدور'), h('b', {}, C.ph === 'play' || C.ph === 'done' ? `${Math.min(C.r + 1, R.length)}/${R.length}` : '—'))), h('div', {class: 'qb-sub'}, rtxt));
       // the clock on top
       if (C.ph === 'fill') s.append(h('div', {class: 'qb-clock'}, h('b', {}, `${Math.floor(el / 60)}:${String(el % 60).padStart(2, '0')}`), h('small', {}, `⏳ ننتظر ${need - C.seats.length} ${need - C.seats.length === 1 ? 'لاعب' : 'لاعبين'} · ${C.seats.length}/${need}`)));
@@ -12734,7 +12746,7 @@ function cupBracket(old) {
       }));
       const mm = cupMyMatch(C);
       if (mm && mm.wt && mm.wt.length && C.ph === 'play' && !mm.w) s.append(h('button', {type: 'button', class: 'qb-eye', onclick: () => toast('👁️ يشاهدون طاولتك: ' + mm.wt.join('، '), 3200)}, `👁️ ${mm.wt.length} ${mm.wt.length === 1 ? 'يشاهد' : 'يشاهدون'} طاولتك · اضغط حتى تعرف منو`));
-      if (C.ph === 'done') s.append(h('div', {class: 'qb-note'}, C.champ ? `🏆 مبروك! فزت بالمسابقة وأخذت ${(cupPrize(C) / (C.duo ? 2 : 1)).toLocaleString('en')} كشتات` : C.out && cupPrize2(C) && C.r === last ? `🥈 المركز الثاني! أخذت ${(cupPrize2(C) / (C.duo ? 2 : 1)).toLocaleString('en')} كشتات` : (() => { const w = R[last][0].w && R[last][0][R[last][0].w]; return `خلصت المسابقة${w ? ' · الفايز: ' + w.map(i => C.seats[i].n).join(' و') : ''}`; })()),
+      if (C.ph === 'done') s.append(h('div', {class: 'qb-note'}, C.champ ? `🏆 مبروك! فزت بالمسابقة وأخذت ${(cupPrize(C) / cupTS(C)).toLocaleString('en')} كشتات` : C.out && cupPrize2(C) && C.r === last ? `🥈 المركز الثاني! أخذت ${(cupPrize2(C) / cupTS(C)).toLocaleString('en')} كشتات` : (() => { const w = R[last][0].w && R[last][0][R[last][0].w]; return `خلصت المسابقة${w ? ' · الفايز: ' + w.map(i => C.seats[i].n).join(' و') : ''}`; })()),
         h('div', {class: 'qb-btns2'}, h('button', {type: 'button', class: 'qb-join', onclick: () => { if (old) PROFILE.cupW = null; else PROFILE.cup = null; saveProfile(); close(); cupSheet(1); }}, 'مسابقة جديدة'), h('button', {type: 'button', class: 'qb-back', onclick: () => { if (old) PROFILE.cupW = null; else PROFILE.cup = null; saveProfile(); close(); drawHome(); }}, 'رجوع')));
       else if (C.out) s.append(h('div', {class: 'qb-note'}, 'طلعت من المسابقة 💔 الطاولات الباقية تكمل لحد النهاية وتكدر تشاهدها: اضغط على أي طاولة. وبنفس الوقت تكدر تعمل أو تنضم لمسابقة ثانية.'),
         h('div', {class: 'qb-btns2'}, h('button', {type: 'button', class: 'qb-join', onclick: () => { close(); cupSheet(1); }}, 'مسابقة ثانية'), h('button', {type: 'button', class: 'qb-back', onclick: () => close()}, 'رجوع')));
@@ -12764,8 +12776,8 @@ async function cupWatch(m, C0) {
   PROFILE.name = a.n; PROFILE.photo = a.av;   // the screen sits in the first player's place for the game (put back right after)
   PLAY_VAR = gv.v || null; NEXT_AZT = gv.v === 'fives' ? (C.az || 150) : 0; NEXT_VOICE = false;
   onlineEnd(); PLAY_SRC = 'cup';
-  FORCE_NAMES = C.duo ? [C.seats[os[0]].n, C.seats[mate].n, C.seats[os[1]].n] : [C.seats[os[0]].n];
-  const mode = C.duo ? 'team' : 'normal', o = {mode, count: C.duo ? 4 : 2, slow: false, diff: 'normal', one: C.t === 'duel', tay: C.tay};
+  FORCE_NAMES = cupMh(C) ? [] : C.duo ? [C.seats[os[0]].n, C.seats[mate].n, C.seats[os[1]].n] : [C.seats[os[0]].n];
+  const mode = C.duo ? 'team' : 'normal', o = {mode, count: cupMh(C) ? cupTS(C) : C.duo ? 4 : 2, slow: false, diff: 'normal', one: C.t === 'duel', tay: C.tay};
   if (gv.k !== 'dealmon') launchAny(gv.k, o);
   else { MODE = mode; nBots = o.count - 1; SLOW = false; $('#diff').value = 'normal'; launch(); }
   PLAY_SRC = 'cup';
@@ -12843,9 +12855,9 @@ async function cupPlay() {
   const gv = pvFind(C.g), me = cupMeIdx(), side = cupMySide(m), os = m[side === 'a' ? 'b' : 'a'], mate = m[side].find(i => i !== me);
   PLAY_VAR = gv.v || null; NEXT_AZT = gv.v === 'fives' ? (C.az || 150) : 0; NEXT_VOICE = !!C.voice;
   onlineEnd(); PLAY_SRC = 'cup';
-  FORCE_NAMES = C.duo ? [C.seats[os[0]].n, C.seats[mate].n, C.seats[os[1]].n] : [C.seats[os[0]].n];
+  FORCE_NAMES = cupMh(C) ? [] : C.duo ? [C.seats[os[0]].n, C.seats[mate].n, C.seats[os[1]].n] : [C.seats[os[0]].n];
   CUP_PLAY = {id: C.id, r: C.r}; C.entered = true; saveProfile(); document.querySelectorAll('.cupstart').forEach(x => x.remove());
-  const mode = C.duo ? 'team' : 'normal', o = {mode, count: C.duo ? 4 : 2, slow: false, diff: 'normal', one: C.t === 'duel', tay: C.tay};
+  const mode = C.duo ? 'team' : 'normal', o = {mode, count: cupMh(C) ? cupTS(C) : C.duo ? 4 : 2, slow: false, diff: 'normal', one: C.t === 'duel', tay: C.tay};
   if (gv.k !== 'dealmon') launchAny(gv.k, o);
   else { MODE = mode; nBots = o.count - 1; SLOW = false; $('#diff').value = 'normal'; launch(); }
   PLAY_SRC = 'cup';
@@ -12927,6 +12939,7 @@ function kashtaGemsEl() {
     }}, coinImg(), cost.toLocaleString('en'))))));
 }
 window.__cupDbg = () => ({cupPlay, cupTick, cupBuild, P: () => PROFILE, save: saveProfile});   // for the automatic tests
+window.__cupEnter = c => cupEnter(c); window.__cupSheet = t => cupSheet(t);
 // ---- the flags, drawn (square, to sit in a circle): the same on every phone ----
 var FLAGS = (() => {
   const H = (...c) => c.map((x, i) => `<rect y="${i * 60 / c.length}" width="60" height="${60 / c.length + .5}" fill="${x}"/>`).join('');
@@ -13177,8 +13190,13 @@ function netPlayers(g, o) { const M = MG[g]; if (M && M.players) return M.player
 let NET_CUR = null;
 function netLeaveGame() { const c = NET_CUR; NET_CUR = null; if (c) { try { c.N.stop(); } catch (e) {} try { c.leave(); } catch (e) {} } closeAll(); }   // the games that are ready to play with friends (more come batch by batch)
 let FB = null, NETR = null;   // NETR: the room I am in {code, host, uid, unsub[], room}
-async function netInit() {
-  if (FB) return FB;
+let FBP = null;
+function netInit() {   // one sign-in for the whole app, even when several parts ask at the same moment
+  if (FB) return Promise.resolve(FB);
+  if (!FBP) FBP = netInit1().catch(e => { FBP = null; throw e; });
+  return FBP;
+}
+async function netInit1() {
   if (!window.FBX) throw new Error('nofb');
   const app = FBX.initializeApp(FB_CFG), auth = FBX.getAuth(app);
   const cred = await Promise.race([FBX.signInAnonymously(auth), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))]);
@@ -13497,12 +13515,15 @@ async function rcJoin(code) {
     await netInit();
     const v = (await FBX.get(fbr('rooms/' + code))).val();
     if (!v || v.g !== 'club') return 'none';
+    if ((v.ban || {})[FB.uid]) return 'ban';
     if (Object.keys(v.members || {}).length >= 30 && !(v.members || {})[FB.uid]) return 'full';
+    if (v.open === false && !(v.members || {})[FB.uid]) { await FBX.set(fbr(`rooms/${code}/req/${FB.uid}`), {n: PROFILE.name || 'لاعب', av: rcSmallAv(), at: Date.now()}); return 'req'; }
     await FBX.update(fbr(`rooms/${code}/members/${FB.uid}`), {n: PROFILE.name || 'لاعب', av: rcSmallAv(), j: Date.now(), xp: ((v.members || {})[FB.uid] || {}).xp || 0});
     await FBX.push(fbr(`rooms/${code}/chat`), {u: 'sys', n: '', m: `${PROFILE.name || 'لاعب'} انضم للنادي 👋`, t: Date.now()});
     return 'ok';
   });
-  if (ok === 'none') toast('ماكو نادي بهالكود'); else if (ok === 'full') toast('النادي مليان (30 عضو)');
+  if (ok === 'none') toast('ماكو نادي بهالكود'); else if (ok === 'full') toast('النادي مليان (30 عضو)'); else if (ok === 'ban') toast('ما تكدر تدخل هذا النادي');
+  else if (ok === 'req') toast('النادي مقفل: انرسل طلبك، ينتظر موافقة الرئيس أو المشرف ⏳', 3000);
   else if (ok === 'ok') { PROFILE.rclub = code; saveProfile(); toast('انضميت للنادي 🎉'); rcWatch(); drawClubs(); }
 }
 async function rcLeave() {
@@ -13526,6 +13547,7 @@ async function rcWatch() {
     const v = s.val();
     if (!v || v.g !== 'club' || !(v.members || {})[FB.uid]) { if (RC.code === code) { rcStop(); PROFILE.rclub = null; saveProfile(); toast('النادي انحذف أو انطلعت منه'); } }
     else { RC.data = v; const M = Object.values(v.members || {}), sig = M.length + ':' + M.reduce((a, m) => a + (m.xp || 0), 0); if (RC.sig !== sig) { RC.sig = sig; try { FBX.update(fbr(`rooms/0000/clubs/${code}`), {name: v.name, em: v.em || '🛡️', n: M.length, xp: M.reduce((a, m) => a + (m.xp || 0), 0), at: Date.now()}); } catch (e) {} } }
+    if (RC.setDraw) try { RC.setDraw(); } catch (e) {}
     if (RC.upd && RC.upd.isConnected && RC.upd._u) RC.upd._u();   // the club room is open: only its parts change (what you type stays)
     else if (RC.page && RC.page.isConnected) drawClubs();
     try { if (v && v.members) Object.entries(v.members).forEach(([u, m]) => { if (u !== FB.uid) rfrAdd(u, m.n, m.av, 'club'); }); } catch (e) {}
@@ -13548,7 +13570,7 @@ function rcPanel() {
       list.innerHTML = '';
       if (!L.length) list.append(h('p', {class: 'hint'}, 'ماكو أندية بعد. أسس أول نادي 👆'));
       L.forEach(([c, x]) => list.append(h('div', {class: 'rcl'}, h('span', {class: 'e'}, x.em || '🛡️'), h('div', {}, h('b', {}, x.name), h('small', {}, `👥 ${x.n || 1} · مستوى ${clubLvOf(x.xp || 0).L}`)),
-        h('button', {type: 'button', class: 'btn primary', disabled: (x.n || 0) >= 30, onclick: () => rcJoin(c)}, (x.n || 0) >= 30 ? 'مليان' : 'انضم'))));
+        h('button', {type: 'button', class: 'btn primary', disabled: (x.n || 0) >= 30, onclick: () => rcJoin(c)}, (x.n || 0) >= 30 ? 'مليان' : x.open === false ? 'اطلب 🔒' : 'انضم'))));
     }).catch(() => { list.innerHTML = ''; list.append(h('p', {class: 'hint'}, 'ما كدرنا نجيب الأندية، تأكد من النت')); });
     return box;
   }
@@ -13619,11 +13641,12 @@ function rcRoom(pg) {
   const stkBtn = h('button', {type: 'button', class: 'cbtn', 'aria-label': 'ملصقات', onclick: () => {
     if (tray.hidden) { tray.innerHTML = ''; tray.append(h('div', {class: 'stkgrid'}, STK_ORDER.map(i => [STICKERS[i], i]).map(([st, i]) => hasStk(i) ? h('button', {type: 'button', 'aria-label': st.t, onclick: () => { tray.hidden = true; rcSend('', i); try { SFX.play('stk' + i, .8); } catch (e) {} }}, stickerEl(i, true)) : null))); }
     tray.hidden = !tray.hidden; }}, '😀');
-  const ci = h('div', {class: 'ci'}), em = h('span', {class: 'clubem rcem2'});
+  const ci = h('div', {class: 'ci', role: 'button', onclick: () => rcSettings('info')}), em = h('span', {class: 'em rcem2', role: 'button', onclick: () => rcSettings('info')});
   const drawHead = () => { const d = RC.data || d0, M = Object.values(d.members || {}), xp = M.reduce((a, m) => a + (m.xp || 0), 0), lv = clubLvOf(xp), on = M.filter(m => m.on).length;
-    em.textContent = d.em || '🛡️'; ci.innerHTML = ''; ci.append(h('b', {}, d.name), h('small', {}, `مستوى ${lv.L} · 👥 ${M.length} · 🟢 ${on} · الكود `, h('bdi', {dir: 'ltr', class: 'rccode'}, PROFILE.rclub))); };
+    em.textContent = d.em || '🛡️'; em.style.background = d.c || '#8a3b1d'; ci.innerHTML = ''; ci.append(h('b', {}, d.name), h('small', {}, `مستوى ${lv.L} · 👥 ${M.length} · 🟢 ${on} · الكود `, h('bdi', {dir: 'ltr', class: 'rccode'}, PROFILE.rclub))); };
   const head = h('div', {class: 'clubhead'}, em, ci,
-    h('button', {type: 'button', class: 'cbtn', 'aria-label': 'الأعضاء', onclick: () => rcMembers()}, '👥'),
+    h('button', {type: 'button', class: 'cbtn', 'aria-label': 'الدوري', onclick: () => rcLeague()}, '🏆'),
+    h('button', {type: 'button', class: 'cbtn', 'aria-label': 'الأعضاء', onclick: () => rcSettings('mem')}, '👥'),
     h('button', {type: 'button', class: 'cbtn', 'aria-label': 'أندية ثانية', onclick: () => { CLUB_BROWSE = true; drawClubs(); }}, '🔍'),
     h('button', {type: 'button', class: 'cbtn', 'aria-label': 'إعدادات النادي', onclick: () => rcSettings()}, '⚙️'));
   const bar = h('div', {class: 'composer'}, stkBtn, inp, h('button', {type: 'button', class: 'cbtn send', 'aria-label': 'إرسال', onclick: send}, '➤'));
@@ -13641,19 +13664,6 @@ function rcMembers() {
         h('div', {}, h('b', {}, (u === FB.uid ? 'انت' : m.n) + (u === d.owner ? ' 👑' : '')), h('small', {}, `${['🥇', '🥈', '🥉'][k] || '#' + (k + 1)} ${m.xp || 0} نقطة · ${m.on ? '🟢 متصل' : '⚪ مو متصل'}`)),
         u !== FB.uid ? h('button', {type: 'button', class: 'btn', onclick: () => { close(); rdmThread(u, m.n, m.av); }}, '💬') : ''))),
       h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع'));
-  });
-}
-function rcSettings() {
-  const d = RC.data; if (!d) return;
-  const msg = `تعال انضم لنادي ${d.name} بكشتة 🎴\nكود النادي: ${PROFILE.rclub}\n${netLink(PROFILE.rclub).replace('?room=', '?club=')}`;
-  modal((s, close) => {
-    s.append(h('h3', {style: 'text-align:center'}, `${d.em || '🛡️'} ${d.name}`),
-      h('div', {class: 'netcode'}, h('small', {}, 'كود النادي'), h('b', {}, PROFILE.rclub)),
-      h('div', {class: 'btnrow', style: 'justify-content:center'},
-        h('button', {type: 'button', class: 'btn', onclick: () => window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank')}, '📲 ادعو بالواتساب'),
-        h('button', {type: 'button', class: 'btn', onclick: () => { try { navigator.clipboard.writeText(msg); toast('انسخ ✅'); } catch (e) { toast(PROFILE.rclub); } }}, '📋 انسخ')),
-      h('p', {class: 'hint', style: 'text-align:center'}, 'كل لعبة يلعبها عضو تضيف للنادي: الفوز 40 نقطة والخسارة 15.'),
-      h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn danger', onclick: () => { close(); rcLeave(); }}, '🚪 اطلع من النادي'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع')));
   });
 }
 // ---------- 8.6.1 real friends: a real profile, friend requests, the friends list and private messages ----------
@@ -13862,6 +13872,148 @@ async function rsInvited(key, x) {
   }, {dismiss: false});
 }
 window.__inv = (c, g) => rsInviteSheet(c, g);
+// the «ادعو أصدقائك» of the create-room window: pick real friends → a real room opens and each one gets the invite
+async function rsInviteTo(u, code, g) {
+  const gname = (GAMES.find(x => x.k === g) || {name: g}).name;
+  return FBX.push(fbr(`${HUB}/inv/${u}`), {from: FB.uid, n: PROFILE.name || 'لاعب', av: rcSmallAv(), code, g, gname, at: Date.now()});
+}
+function rsFriendsRoom(g, m, n, room) {
+  rsStart();
+  const F = Object.entries(RS.fr || {});
+  if (!F.length) return toast('ما عندك أصدقاء حقيقيين بعد. اضغط على صورة أي لاعب حقيقي (بالنادي أو بغرفة) وضيفه 👥', 3200);
+  return modal((s, close) => {
+    const picked = new Set(), list = h('div', {class: 'frlist'}), max = Math.max(1, n - 1);
+    const draw = () => { list.innerHTML = ''; F.sort((a, b) => (rsOnline(b[0]) ? 1 : 0) - (rsOnline(a[0]) ? 1 : 0)).forEach(([u, x]) => list.append(h('button', {type: 'button', class: 'fr pick' + (picked.has(u) ? ' on' : ''), onclick: () => { if (picked.has(u)) picked.delete(u); else if (picked.size < max) picked.add(u); else toast(`الطاولة تاخذ ${max} ${max === 1 ? 'صديق' : 'أصدقاء'} بس`); draw(); }},
+      h('span', {class: 'fp'}, h('img', {src: x.av || avatarURL('m', 1), alt: ''}), rsOnline(u) ? h('i', {class: 'on'}) : ''), h('div', {}, h('b', {}, x.n), h('small', {}, rsOnline(u) ? '🟢 متصل' : '⚪ مو متصل')), h('span', {class: 'ck'}, picked.has(u) ? '✓' : '')))); };
+    draw();
+    s.append(h('h3', {}, `👥 ادعو أصدقائك · ${g.name}`), h('p', {class: 'hint'}, `اختار لحد ${max} ${max === 1 ? 'صديق' : 'أصدقاء'}. توصلهم الدعوة على تلفوناتهم، واللي ما يدخل يلعب بمكانه الجهاز.`), list,
+      h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn gold', onclick: async () => {
+        if (!picked.size) return toast('اختار صديق واحد على الأقل');
+        close();
+        let code = null;
+        if (g.k === 'dealmon') { await netCreate(g, m, {count: n}); for (let t = 0; t < 40 && !code; t++) { await new Promise(r => setTimeout(r, 250)); try { code = NET.code; } catch (e) {} } }
+        else { await netCreate(g, m, {count: n, diff: room && room.diff}); for (let t = 0; t < 40 && !code; t++) { await new Promise(r => setTimeout(r, 250)); code = NETR && NETR.code; } }
+        if (!code) return;
+        for (const u of picked) { try { await rsInviteTo(u, code, g.k); } catch (e) {} }
+        toast(`انرسلت الدعوات (${picked.size}) ✅ استناهم بالغرفة`, 2600);
+      }}, '📨 أرسل الدعوات'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع')));
+  });
+}
+// ---------- 8.6.5 the real club's window (the same look as before): النادي · المستوى · الترتيب · التعليمات · الأعضاء · الإعدادات, and 🏆 الدوري ----------
+// roles: the owner (رئيس) does everything; a supervisor (مشرف: mods/<uid>) accepts / kicks members and changes the settings except the name and emblem
+const rcRole = d => !d || !FB ? 'mem' : d.owner === FB.uid ? 'pres' : (d.mods || {})[FB.uid] ? 'mod' : 'mem';
+const rcEm = (d, big) => h('span', {class: 'em' + (big ? '' : ''), style: `background:${d.c || '#8a3b1d'}`}, d.em || '🛡️');
+function rcSettings(tab0) {
+  const code = PROFILE.rclub; if (!RC.data || !code) return;
+  modal((s, close) => {
+    let tab = tab0 || 'info';
+    const body = h('div', {class: 'cs2body'}), tabs = h('div', {class: 'cs2tabs'}), head = h('div', {class: 'cs2top'}), title = h('div', {class: 'cs2mh'});
+    const draw = () => {
+      const d = RC.data; if (!d) return close();
+      const role = rcRole(d), adm = role !== 'mem', M = Object.entries(d.members || {}), xp = M.reduce((a, [, m]) => a + (m.xp || 0), 0), lv = clubLvOf(xp), on = M.filter(([, m]) => m.on).length;
+      const TB = [['info', 'النادي', 'shd'], ['lvl', 'المستوى', 'chart'], ['rank', 'الترتيب', 'rank'], ['rules', 'التعليمات', 'book'], ['mem', 'الأعضاء', 'usr'], ...(adm ? [['set', 'الإعدادات', 'gear']] : [])];
+      tabs.innerHTML = ''; body.innerHTML = ''; head.innerHTML = ''; title.innerHTML = '';
+      head.append(h('div', {class: 'cs2logo'}, rcEm(d)),
+        h('div', {class: 'cs2mid'}, h('div', {class: 't'}, h('span', {}, `مستوى ${lv.L}`), h('i', {}, '•'), h('span', {class: 'p'}, cs2ic('usr'), ` ${M.length}/30`)), h('div', {class: 'xp'}, h('i', {style: `width:${Math.max(3, Math.min(100, lv.pct))}%`}))),
+        h('div', {class: 'cs2ib'}, h('button', {type: 'button', class: 'g', 'aria-label': 'الدوري', onclick: () => { close(); rcLeague(); }}, cs2ic('cup')), h('button', {type: 'button', 'aria-label': 'إغلاق', onclick: () => close()}, '✕')));
+      title.append(h('div', {class: 'l'}, h('div', {class: 'sq'}, cs2ic('sld')), h('h3', {}, d.name, h('span', {class: 'chip'}, (TB.find(x => x[0] === tab) || TB[0])[1]))), h('span', {class: 'cs2on'}, h('i'), `${on} متصل`));
+      TB.forEach(([k, l, ic]) => tabs.append(h('button', {type: 'button', class: tab === k ? 'on' : '', onclick: () => { tab = k; draw(); }}, cs2ic(ic), l)));
+      if (tab === 'info') body.append(h('div', {class: 'cs2info'},
+        h('div', {class: 'cs2big'}, rcEm(d)), h('h2', {}, d.name),
+        h('p', {class: 'sub'}, `نادي ${d.open === false ? 'مقفل، الانضمام بطلب' : 'عام، أي واحد يكدر ينضم'} · الكود `, h('bdi', {dir: 'ltr'}, code)),
+        h('div', {class: 'cs2stats'}, h('div', {}, h('b', {}, lv.L), h('small', {}, 'المستوى')), h('div', {}, h('b', {}, M.length), h('small', {}, 'عضو')), h('div', {}, h('b', {}, xp.toLocaleString('en')), h('small', {}, 'خبرة النادي'))),
+        h('div', {class: 'cs2bio'}, d.bio || CLUB_BIO),
+        h('button', {type: 'button', class: 'cs2row', onclick: () => { const msg = `تعال انضم لنادي ${d.name} بكشتة 🎴\nكود النادي: ${code}\n${netLink(code).replace('?room=', '?club=')}`; window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank'); }}, h('span', {}, '📲 ادعو بالواتساب'), h('span', {}, '‹')),
+        h('button', {type: 'button', class: 'cs2row', onclick: () => { PROFILE.clubMute = !PROFILE.clubMute; saveProfile(); draw(); }}, h('span', {}, cs2ic('bell'), ' إشعارات الشات'), h('span', {class: 'sw' + (PROFILE.clubMute ? '' : ' on'), role: 'switch', 'aria-checked': PROFILE.clubMute ? 'false' : 'true'}, h('i'))),
+        h('button', {type: 'button', class: 'cs2row x', onclick: () => { close(); rcLeave(); }}, h('span', {}, '🚪 الخروج من النادي'), h('span', {}, '‹'))));
+      if (tab === 'lvl') {   // the club's levels: each one gives every member a prize (once)
+        const got = (PROFILE.rcGot = PROFILE.rcGot || {})[code] = PROFILE.rcGot[code] || [];
+        const list = h('div', {class: 'clvlist'});
+        for (let L = 2; L <= Math.min(CLUB_RW.length - 1, lv.L + 6); L++) { const rw = CLUB_RW[L]; if (!rw) continue; const ok = L <= lv.L, has = got.includes(L);
+          list.append(h('div', {class: 'clvrow' + (ok ? ' on' : '') + (has ? ' got' : '')}, h('span', {class: 'lv'}, L), h('span', {class: 'rw'}, lvRwText(rw)),
+            ok ? (has ? h('span', {class: 'done'}, '✓') : h('button', {type: 'button', class: 'btn gold', onclick: () => { if (got.includes(L)) return; got.push(L); giveLvRw(rw, `نادي ${d.name}`); saveProfile(); try { SFX.play('gift', .8); } catch (e) {} toast(`استلمت: ${lvRwText(rw)} 🎉`, 2600); draw(); }}, 'استلم')) : h('span', {class: 'lock'}, '🔒'))); }
+        body.append(h('div', {class: 'clublv'}, h('div', {class: 'clvhead'}, h('span', {class: 'badge'}, lv.L), h('div', {}, h('b', {}, `مستوى النادي ${lv.L}`), h('div', {class: 'bar'}, h('i', {style: `width:${lv.pct}%`})), h('small', {}, `${lv.cur.toLocaleString('en')} من ${lv.need.toLocaleString('en')} للمستوى الجاي`))),
+          h('p', {class: 'hint'}, 'خبرة النادي من ألعاب كل الأعضاء: الفوز 40 والخسارة 15. كل ما يصعد النادي مستوى، كل عضو ياخذ جائزة.'), list));
+      }
+      if (tab === 'rank') body.append(h('div', {class: 'clrank'}, ...M.sort((a, b) => (b[1].xp || 0) - (a[1].xp || 0)).map(([u, m], k) => h('div', {class: 'rank' + (u === FB.uid ? ' me' : ''), onclick: () => u !== FB.uid && rProfile(u, m.n, m.av)},
+        h('b', {class: 'pos'}, ['🥇', '🥈', '🥉'][k] || k + 1), h('img', {src: m.av || avatarURL('m', 1), alt: ''}), h('span', {}, u === FB.uid ? 'انت' : m.n), h('b', {class: 'pts'}, (m.xp || 0).toLocaleString('en'))))));
+      if (tab === 'rules') body.append(h('ol', {class: 'clubrules'}, (d.rules ? String(d.rules).split('\n').filter(Boolean) : CLUB_RULES).map(x => h('li', {}, x))), adm ? h('p', {class: 'hint'}, 'تكدر تعدّل التعليمات من تبويب الإعدادات.') : '');
+      if (tab === 'mem') {
+        const R = Object.entries(d.req || {});
+        if (adm && R.length) body.append(h('div', {class: 'sec'}, `طلبات الانضمام (${R.length})`), ...R.map(([u, x]) => h('div', {class: 'rank'}, h('img', {src: x.av || avatarURL('m', 1), alt: '', onclick: () => rProfile(u, x.n, x.av)}), h('span', {}, x.n),
+          h('span', {class: 'mbtns'}, h('button', {type: 'button', class: 'mb ok', onclick: () => rcAccept(u, x)}, 'قبول'), h('button', {type: 'button', class: 'mb no', onclick: () => FBX.remove(fbr(`rooms/${code}/req/${u}`))}, 'رفض')))));
+        body.append(h('div', {class: 'sec'}, `الأعضاء (${M.length})`), ...M.sort((a, b) => (b[1].xp || 0) - (a[1].xp || 0)).map(([u, m]) => {
+          const isPres = u === d.owner, isMod = !!(d.mods || {})[u], btns = h('span', {class: 'mbtns'});
+          if (u !== FB.uid && !isPres) {
+            if (role === 'pres') btns.append(h('button', {type: 'button', class: 'mb role2', onclick: () => { FBX.set(fbr(`rooms/${code}/mods/${u}`), isMod ? null : true); toast(isMod ? `${m.n} رجع عضو` : `${m.n} صار مشرف ⭐`); }}, isMod ? 'شيل الإشراف' : '⭐ مشرف'));
+            if (adm && (role === 'pres' || !isMod)) btns.append(h('button', {type: 'button', class: 'mb no', onclick: async () => { if (!(await confirmBox(`تطرد ${m.n}؟`, `راح يطلع ${m.n} من النادي وما يكدر يرجع.`, 'اطرد'))) return;
+              await FBX.set(fbr(`rooms/${code}/ban/${u}`), true); await FBX.remove(fbr(`rooms/${code}/members/${u}`)); FBX.set(fbr(`rooms/${code}/mods/${u}`), null); FBX.push(fbr(`rooms/${code}/chat`), {u: 'sys', n: '', m: `${m.n} انطرد من النادي`, t: Date.now()}); }}, 'طرد'));
+          }
+          return h('div', {class: 'rank' + (u === FB.uid ? ' me' : '')}, h('img', {src: m.av || avatarURL('m', 1), alt: '', onclick: () => u !== FB.uid && rProfile(u, m.n, m.av)}),
+            h('span', {}, u === FB.uid ? 'انت' : m.n, h('small', {class: 'role'}, (m.on ? '🟢 ' : '⚪ ') + (isPres ? 'رئيس النادي 👑' : isMod ? 'مشرف ⭐' : 'عضو'))), btns);
+        }));
+        if (role === 'pres') body.append(h('p', {class: 'hint'}, 'المشرف يكدر يقبل ويطرد الأعضاء ويغيّر الإعدادات، بس ما يكدر يغيّر اسم النادي وشعاره.'));
+      }
+      if (tab === 'set') body.append(rcAdminPanel(d, role, () => { tab = 'info'; draw(); }));
+    };
+    RC.setDraw = () => { if (s.isConnected) draw(); };
+    draw();
+    s.classList.add('clubset', 'cs2');
+    s.append(head, h('div', {class: 'cs2main'}, title, tabs, body, h('button', {type: 'button', class: 'cs2back', onclick: () => close()}, 'رجوع')));
+  });
+}
+function rcAdminPanel(d, role, done) {
+  const code = PROFILE.rclub, pres = role === 'pres', el = h('div', {class: 'clubadmin cs2form'});
+  const name = h('input', {value: d.name, maxlength: '20', 'aria-label': 'اسم النادي', disabled: !pres});
+  let em = d.em || '🛡️', col = d.c || CLUB_COLS[0], open = d.open !== false;
+  const ems = h('div', {class: 'cs2ems'}), cols = h('div', {class: 'cs2cols'});
+  const drawEms = () => { ems.innerHTML = ''; CLUB_EMS.forEach(x => ems.append(h('button', {type: 'button', class: x === em ? 'on' : '', disabled: !pres, onclick: () => { em = x; drawEms(); }}, x))); };
+  const drawCols = () => { cols.innerHTML = ''; CLUB_COLS.forEach(x => cols.append(h('button', {type: 'button', class: x === col ? 'on' : '', style: `background:${x}`, 'aria-label': 'لون', disabled: !pres, onclick: () => { col = x; drawCols(); }}))); };
+  drawEms(); drawCols();
+  const bio = h('textarea', {rows: '2', maxlength: '120', 'aria-label': 'وصف النادي'}); bio.value = d.bio || CLUB_BIO;
+  const rules = h('textarea', {rows: '5', maxlength: '800', 'aria-label': 'التعليمات'}); rules.value = d.rules || CLUB_RULES.join('\n');
+  const sw = h('button', {type: 'button', class: 'cs2row', onclick: () => { open = !open; sw.lastChild.className = 'sw' + (open ? ' on' : ''); }}, h('span', {}, '🔓 النادي عام (أي واحد ينضم بدون طلب)'), h('span', {class: 'sw' + (open ? ' on' : '')}, h('i')));
+  el.append(h('label', {class: 'fld'}, 'اسم النادي' + (pres ? '' : ' (الرئيس بس)'), name), h('div', {class: 'lbl'}, 'الشعار'), ems, h('div', {class: 'lbl'}, 'اللون'), cols,
+    h('label', {class: 'fld'}, 'وصف النادي', bio), h('label', {class: 'fld'}, 'التعليمات (كل سطر تعليمة)', rules), sw,
+    h('button', {type: 'button', class: 'btn gold', style: 'width:100%', onclick: async () => {
+      const n = name.value.trim(); if (pres && n.length < 3) return toast('اسم النادي 3 حروف أو أكثر');
+      const up = {bio: bio.value.trim().slice(0, 120), rules: rules.value.trim().slice(0, 800), open};
+      if (pres) Object.assign(up, {name: n, em, c: col});
+      try { await FBX.update(fbr('rooms/' + code), up); FBX.update(fbr(`rooms/0000/clubs/${code}`), {name: pres ? n : d.name, em: pres ? em : d.em || '🛡️', open}); toast('انحفظت إعدادات النادي ✅'); done(); } catch (e) { toast('ما انحفظت، جرّب مرة ثانية'); }
+    }}, 'احفظ'));
+  return el;
+}
+async function rcAccept(u, x) {
+  const code = PROFILE.rclub;
+  await FBX.update(fbr(`rooms/${code}/members/${u}`), {n: x.n, av: x.av || '', j: Date.now(), xp: 0});
+  await FBX.remove(fbr(`rooms/${code}/req/${u}`));
+  FBX.push(fbr(`rooms/${code}/chat`), {u: 'sys', n: '', m: `${x.n} انضم للنادي 👋`, t: Date.now()});
+  toast(`قبلت ${x.n} بالنادي ✅`);
+}
+// 🏆 the club's league: a real room for a game; every member gets the invite on his phone and a line in the club chat
+function rcLeague() {
+  const d = RC.data, code = PROFILE.rclub; if (!d) return;
+  modal((s, close) => {
+    let gk = 'uno';
+    const games = NET_GAMES.concat(['dealmon']).filter((k, i, a) => a.indexOf(k) === i).map(k => GAMES.find(g => g.k === k)).filter(Boolean);
+    const list = h('div', {class: 'qb-games'});
+    const draw = () => { list.innerHTML = ''; games.forEach(g => list.append(h('button', {type: 'button', class: gk === g.k ? 'on' : '', onclick: () => { gk = g.k; draw(); }}, g.name))); };
+    draw();
+    s.append(h('h3', {style: 'text-align:center'}, `🏆 دوري ${d.name}`), h('p', {class: 'hint', style: 'text-align:center'}, 'اختار اللعبة: تنفتح غرفة، وكل أعضاء النادي توصلهم دعوة على تلفوناتهم وتنكتب بشات النادي. اللي يدخل يلعب، والباقي يكمله الجهاز.'), list,
+      h('div', {class: 'btnrow'}, h('button', {type: 'button', class: 'btn gold', onclick: async () => {
+        close(); const g = GAMES.find(x => x.k === gk);
+        let rc = null;
+        if (gk === 'dealmon') { await netCreate(g, 'normal', {count: 4}); for (let t = 0; t < 40 && !rc; t++) { await new Promise(r => setTimeout(r, 250)); try { rc = NET.code; } catch (e) {} } }
+        else { await netCreate(g, 'normal', {count: netPlayers(gk, {mode: 'normal', count: 4})}); for (let t = 0; t < 40 && !rc; t++) { await new Promise(r => setTimeout(r, 250)); rc = NETR && NETR.code; } }
+        if (!rc) return;
+        const M = Object.keys(d.members || {}).filter(u => u !== FB.uid);
+        for (const u of M) { try { await rsInviteTo(u, rc, gk); } catch (e) {} }
+        FBX.push(fbr(`rooms/${code}/chat`), {u: 'sys', n: '', m: `🏆 ${PROFILE.name || 'لاعب'} فتح دوري ${g.name} · كود الغرفة ${rc}`, t: Date.now()});
+        toast(`انرسلت الدعوة لكل الأعضاء (${M.length}) ✅`, 2600);
+      }}, '🏆 افتح الدوري'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'رجوع')));
+  });
+}
+window.__rcSet = t => rcSettings(t);
 
 // ---------- 8.1 أونو و«أونو لا ترحم» ----------
 // one round: the first to empty his hand wins. «اسحب» cards stack (one of the same or a bigger draw on top).
@@ -14768,10 +14920,17 @@ async function mhLoop(S) {
           S.open[act.h] = true; try { SFX.play('cardplay', .5); } catch (e) {}
           if (act.h === S.ring) { res = 'hold'; mgSay(`${who} كال «طلّع» وطلع المحبس بيها! 😂`, 1900); }
           else { mgSay(`${who}: طلّع ✋`, 700); mhRender(S); await mgWait(S, 500); if (left.length - 1 === 1) { res = 'find'; S.open[S.ring] = true; mgSay('بقت إيد وحدة: المحبس بيها 💍', 1500); } }
-        } else {   // «بات»
-          left.forEach(x => { S.open[x] = true; });
-          res = act.h === S.ring ? 'find' : 'hold';
+        } else {   // «بات»: the other hands open one by one (as people do), the chosen hand last
+          mgSay(`${who}: بات على هاي الإيد 👆`, 1200); S.batH = act.h; mhRender(S); await mgWait(S, 900); if (!mgAlive(S)) return;
+          for (const x of left.filter(y => y !== act.h)) {
+            S.open[x] = true; try { SFX.play('cardplay', .5); } catch (e) {} mhRender(S);
+            if (x === S.ring) { res = 'hold'; break; }
+            await mgWait(S, 650); if (!mgAlive(S)) return;
+          }
+          if (!res) { await mgWait(S, 300); S.open[act.h] = true; mhRender(S); res = act.h === S.ring ? 'find' : 'hold'; }
+          S.batH = null;
           mgSay(res === 'find' ? `${who}: بات! 💍 لكاه` : `${who}: بات… وطلعت فاضية 😬`, 1900);
+          await mgWait(S, 700);
         }
       }
       if (!mgAlive(S)) return;
@@ -14804,7 +14963,7 @@ function mhPerson(S, i) {
     const ring = x === S.ring && opened;
     const canHide = S.phase === 'hide' && S.hold === S.MT && tm === S.MT && !!S.wait, canFind = S.phase === 'find' && S.hold !== S.MT && tm !== S.MT && !S.open[x] && !!S.wait;
     const pic = ngImg(`mhh_${sl}_${ring ? 'ring' : opened ? 'open' : 'fist'}`);
-    return h('button', {type: 'button', class: 'mhf2 ' + side + (opened ? ' open' : '') + (mine ? ' mine' : '') + (canHide || canFind ? ' go' : ''), disabled: !(canHide || canFind), 'aria-label': `${side === 'r' ? 'الإيد اليمنى' : 'الإيد اليسرى'} مال ${i !== S.me ? p.name : 'انت'}`,
+    return h('button', {type: 'button', class: 'mhf2 ' + side + (opened ? ' open' : '') + (mine ? ' mine' : '') + (S.batH === x && !S.open[x] ? ' bat' : '') + (canHide || canFind ? ' go' : ''), disabled: !(canHide || canFind), 'aria-label': `${side === 'r' ? 'الإيد اليمنى' : 'الإيد اليسرى'} مال ${i !== S.me ? p.name : 'انت'}`,
       onclick: () => { if (canHide) S.wait(x); else if (canFind) mhAsk(S, x); }},
       h('img', {src: pic, alt: '', draggable: 'false'}), mine ? h('i', {class: 'mhmine'}, '💍') : '');
   };
