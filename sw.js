@@ -1,5 +1,5 @@
 // كشتة: works without the internet after the first open. The page itself is fetched fresh when there is a connection (so updates arrive).
-const C = 'kashta-8.6.5-1795361746';
+const C = 'kashta-8.6.6-1795362126';
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png']).catch(() => {}))); });
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {
