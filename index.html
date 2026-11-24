@@ -2036,6 +2036,10 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 .mgseat.auto .mgav img,.mgav.auto img{filter:grayscale(.8) brightness(.55)}
 .mgav{position:relative}.mgauto{position:absolute;left:-6px;bottom:-4px;font-size:15px;font-style:normal;line-height:1;background:#1b0f08;border:1px solid #e8c47a;border-radius:50%;padding:2px;z-index:2}
 .ava > .mic{display:none!important}
+
+/* 8.6.9 khabitha: the deck is shuffled again */
+.khshuf{animation:khshuf 1.3s ease}
+@keyframes khshuf{0%,100%{transform:none}15%{transform:translateX(-10px) rotate(-8deg)}30%{transform:translateX(10px) rotate(8deg)}45%{transform:translateX(-8px) rotate(-5deg)}60%{transform:translateX(8px) rotate(5deg)}80%{transform:scale(1.08)}}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -6842,7 +6846,7 @@ function launchTawla(opt) { afkReset(); haltOthers('tawla'); twBusy = false; twA
   let TS = null, fr = null;
   if (opt.net) { const N = opt.net, id = TW_ID, op = N.order.find(u => u !== N.R.uid), x = N.room.seats[op] || {n: 'صاحبك'};
     fr = {name: x.n, av: x.av, human: false, remote: true, friend: true, uid: op};
-    TS = {net: N, me: N.me, op: 1 - N.me, slow: false, rnd: netRng(N.seed), aliveFn: () => !!TG && TG.ts === TS && id === TW_ID, say: t => toast(t, 2000), sayAt: (a, i) => twSay(1, i)};
+    TS = {net: N, me: N.me, op: 1 - N.me, slow: false, rnd: netRng(N.seed), aliveFn: () => !!TG && TG.ts === TS && id === TW_ID, say: t => toast(t, 2000), sayAt: (a, i) => twSay(1, i), onEv: (a, e) => e && e.k === 'twl' && twLiveIn(e)};
     TS.pl = N.me === 0 ? [{name: PROFILE.name, human: true}, fr] : [fr, {name: PROFILE.name, human: true}]; }
   TG = {mode: opt.mode, diff: opt.mode === 'tutorial' ? 'easy' : opt.diff, slow: !!opt.slow, ts: TS,
     target: opt.one || opt.mode === 'normal' ? 5 : 1,   // a tournament duel (opt.one) is a normal game to 5
@@ -6862,6 +6866,23 @@ function twNetMine() {
   const TS = TG.ts; if (!TS) return;
   mgTurn(TS, TS.me, () => new Promise(res => { TG.sendTurn = a => { TG.sendTurn = null; res(a); }; }), async () => null);
 }
+// 8.6.9 move by move: my dice and every move go out as they happen; my friend sees them at once
+function twLive() { const TS = TG && TG.ts; if (!TS || TG.cur !== 0 || !TG.turnDice) return; TS.net.send({t: 'e', i: TS.me, e: {k: 'twl', tk: TG.turnTok, dice: TG.turnDice, moves: TG.made.map(twAbs)}}); }
+function twLiveIn(e) {
+  if (!TG || TG.cur !== 1 || !e.dice) return;
+  const L = TG.live && TG.live.tk === TG.turnTok ? TG.live : null;
+  if (!L) {   // his dice
+    TG.live = {tk: TG.turnTok, base: TWE.clone(TG.s), dice: e.dice, moves: []};
+    const d = e.dice; TG.dice = d; TG.turnDice = d; TG.rem = TWE.diceList(d[0], d[1]); TG.turnStart = TWE.clone(TG.s); TG.made = []; TG.undo = [];
+    TG.thr = {who: 1, anim: !TG.fromOpen, list: (d[0] === d[1] ? [d[0], d[0], d[0], d[0]] : d).map(twThrowRec)}; TG.fromOpen = false; TG.phase = 'move'; SFX.play('dice'); twRender();
+  }
+  const T = TG.live, nm = e.moves || [], same = (a, b) => a.from === b.from && a.to === b.to && a.d === b.d;
+  if (nm.length === T.moves.length + 1 && T.moves.every((m, i) => same(m, nm[i]))) { twDo(twLoc(nm[nm.length - 1])); T.moves = nm; twRender(); return; }
+  if (nm.length === T.moves.length && T.moves.every((m, i) => same(m, nm[i]))) return;
+  // he took a move back: the board from the start of his turn, with what he has now
+  const d = T.dice; TG.s = TWE.clone(T.base); TG.rem = TWE.diceList(d[0], d[1]); TG.made = []; TG.undo = []; T.moves = [];
+  for (const m of nm) { twDo(twLoc(m)); T.moves.push(m); } TG.flight = null; twRender();
+}
 function twNetSend(extra) { if (TG && TG.sendTurn) TG.sendTurn(Object.assign({dice: TG.turnDice, moves: TG.made.map(twAbs)}, extra || {})); }
 // the friend's turn: his record comes, his dice show and his checkers move
 async function twNetTheirs() {
@@ -6876,11 +6897,16 @@ async function twNetTheirs() {
       twToast('رفضت العرض، نكمل 💪'); continue;
     }
     if (a && a.answer != null) continue;
-    const d = a && a.dice || [twRoll(), twRoll()];
+    const d = a && a.dice || [twRoll(), twRoll()], LV = TG.live && TG.live.tk === tk ? TG.live : null; TG.live = null;
+    const fm = (a && a.moves) || [], sameAll = LV && LV.dice[0] === d[0] && LV.dice[1] === d[1] && LV.moves.length === fm.length && LV.moves.every((m, i) => m.from === fm[i].from && m.to === fm[i].to && m.d === fm[i].d);
+    if (!sameAll) {   // what came live is not his last word: his turn from its start
+    if (LV) { TG.s = TWE.clone(LV.base); TG.made = []; TG.undo = []; }
     TG.dice = d; TG.turnDice = d; TG.rem = TWE.diceList(d[0], d[1]); TG.turnStart = TWE.clone(TG.s);
-    TG.thr = {who: 1, anim: !TG.fromOpen, list: (d[0] === d[1] ? [d[0], d[0], d[0], d[0]] : d).map(twThrowRec)}; TG.fromOpen = false; TG.phase = 'move'; SFX.play('dice'); twRender();
+    if (!LV || LV.dice[0] !== d[0] || LV.dice[1] !== d[1]) { TG.thr = {who: 1, anim: !TG.fromOpen, list: (d[0] === d[1] ? [d[0], d[0], d[0], d[0]] : d).map(twThrowRec)}; TG.fromOpen = false; SFX.play('dice'); }
+    TG.phase = 'move'; twRender();
     await twDelay(650, id);
-    for (const m of (a && a.moves) || []) { if (!TG || TG.turnTok !== tk) return; twDo(twLoc(m)); twRender(); await twDelay(620, id); }
+    }
+    for (const m of sameAll ? [] : fm) { if (!TG || TG.turnTok !== tk) return; twDo(twLoc(m)); twRender(); await twDelay(620, id); }
     if (TWE.won(TG.s, 1)) return twGameOver(1);
     if (!(a && a.moves && a.moves.length)) { twToast(`${TG.pl[1].name} ما عنده حركة`); await twDelay(800, id); }
     await twDelay(250, id);
@@ -6940,7 +6966,7 @@ async function twGotDice(d) {
   TG.dice = d; TG.turnDice = d; TG.rem = TWE.diceList(d[0], d[1]); TG.turnStart = TWE.clone(TG.s);
   const ns = d[0] === d[1] ? [d[0], d[0], d[0], d[0]] : d;
   TG.thr = {who: TG.cur, anim: !TG.fromOpen, list: ns.map(twThrowRec)}; TG.fromOpen = false;   // the opening dice are already on the board
-  TG.phase = 'move'; SFX.play('dice'); twRender();
+  TG.phase = 'move'; SFX.play('dice'); twRender(); if (TG.cur === 0) twLive();
   if (!twLegal().length) {
     twToast(TG.cur === 0 ? 'ما عندك حركة بهالرمية 😕' : `${TG.pl[1].name} ما عنده حركة`);
     const tk = TG.turnTok; await twDelay(1400, id); return twEndTurn(tk);
@@ -6969,7 +6995,7 @@ function twDo(m) {
   TG.undo.push({s: TWE.clone(TG.s), rem: TG.rem.slice(), made: TG.made.slice()});
   TG.s = TWE.apply(TG.s, TG.cur, m);
   const i = TG.rem.indexOf(m.d); TG.rem.splice(i, 1);
-  TG.made.push(m); TG.last = m; TG.sel = null;
+  TG.made.push(m); TG.last = m; TG.sel = null; if (p === 0) twLive();
   { const id = TW_ID, snd = m.hit ? 'hitchk' : m.to === 'off' ? 'bearoff' : 'chk'; setTimeout(() => { if (id === TW_ID && TG) SFX.play(snd); }, 380); }   // the sound when it lands
   if (m.hit) { twTip('hit'); if (TG.cur === 1) twBotSay([7, 8, 9, 13, 20]); else if (Math.random() < .5) setTimeout(() => twBotSay([1, 7, 17]), 700); }
 }
@@ -6983,7 +7009,7 @@ async function twAfterMyMove() {
 }
 function twUndo() {
   if (!TG || TG.cur !== 0 || !TG.undo.length) return;
-  const u = TG.undo.pop(); TG.s = u.s; TG.rem = u.rem; TG.made = u.made; TG.sel = null; TG.last = null; TG.phase = 'move';
+  const u = TG.undo.pop(); TG.s = u.s; TG.rem = u.rem; TG.made = u.made; TG.sel = null; TG.last = null; TG.phase = 'move'; twLive();
   SFX.play('chk', .5); twRender(); if (!TG.clock) twClockStart(() => twAuto(), TG.clockRest);   // undo never gives the clock back: it keeps counting
 }
 let twAutoBusy = false;
@@ -8729,7 +8755,7 @@ function launchKhabitha(opt) { afkReset(); haltOthers('khabitha');
   if (opt.net) {   // 8.5 with friends: my seat at the bottom, the others turn with me; every turn ends by sending the whole table
     const N = opt.net, id = KH_ID, seats = N.room.seats || {}, r = netRng(N.seed ^ 0x51a7), bn = mgShuffle(BOT_NAMES.slice().sort(), r).filter(x => !N.order.some(u => seats[u] && seats[u].n === x));
     const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid, uid: u} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
-    TS = {net: N, me: N.me, pl: A, slow: false, aliveFn: () => !!KG && KG.ts === TS && id === KH_ID, sayAt: (a, i) => khSay((a - N.me + n) % n, i), say: t => toast(t, 2000)};
+    TS = {net: N, me: N.me, pl: A, slow: false, awayMs: 40000, aliveFn: () => !!KG && KG.ts === TS && id === KH_ID, sayAt: (a, i) => khSay((a - N.me + n) % n, i), say: t => toast(t, 2000), onEv: (a, e) => e && e.k === 'khp' && khLiveIn(a, e)};
     for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend, uid: x.uid}); }
   } else
   for (let i = 1; i < n; i++) pl.push({name: names[i - 1] + (opt.mode === 'team' && i === 2 ? ' 🤝' : ''), av: botAv(names[i - 1], i), human: false});
@@ -8847,7 +8873,12 @@ async function khTurn(first) {
     const TS = KG.ts, a = khA(p), mine = p === 0, hostBot = TS.net.host && !mine && !TS.pl[a].remote;
     if (mine || hostBot) {   // this phone plays the turn; its end sends the table
       const endP = new Promise(res => { KG.endNet = res; }); KG.netFallback = false;
-      mgTurn(TS, a, () => endP, () => endP);
+      const tok = KG.turnTok;
+      mgTurn(TS, a, () => endP, () => endP).then(x => {   // 8.6.9 the host played my turn for me (I was away): his table is the table
+        if (!KG || id !== KH_ID || !KG.endNet || KG.turnTok !== tok || KG.netFallback) return;
+        KG.endNet = null; khClockStop(); khUnstage && KG.staged.length && khUnstage(); toast('تأخرت، فلعب الجهاز دورك 🤖', 2500); khApplyNet(p, x, id);
+      });
+      KG.liveH = null; khLive();
       if (mine) { khClock(); khTip(KG.phase === 'draw' ? 'draw' : 'play'); return; }
       try { await khBot(p, id); } catch (e) { if (e !== 'stop') console.warn('khBot', e); }
       return;
@@ -8856,18 +8887,44 @@ async function khTurn(first) {
     const x = await mgTurn(TS, a, () => null, () => new Promise(res => { KG.endNet = res; KG.netFallback = true; khBot(p, KH_ID).catch(() => {}); }));
     if (!KG || id !== KH_ID) return;
     KG.netFallback = false; KG.endNet = null;
-    if (!x || !x.st) return;
-    const prevDisc = KG.st.disc.length;
-    khLoad(x.st);
-    if (x.end === 'void') return khVoidRound();
-    if (x.c != null && KG.cards[x.c]) { khFlyLater(khRectOf(`.ava[data-kh="${p}"]`), '.khdisc', KG.cards[x.c], 'disc'); SFX.play('cardplay'); }
-    if (x.end === 'out') { khRender(); return khRoundOver(p); }
-    KG.cur = (p + 1) % KG.n; KG.phase = 'wait'; khRender();
-    setTimeout(() => KG && id === KH_ID && khTurn(false), 350);
-    return;
+    return khApplyNet(p, x, id);
   }
   if (p === 0) { khClock(); khTip(KG.phase === 'draw' ? 'draw' : 'play'); return; }
   try { await khBot(p, id); } catch (e) { if (e !== 'stop') console.warn('khBot', e); }
+}
+// 8.6.9 online: a turn that came in the log (a friend's, or mine that the device played)
+function khApplyNet(p, x, id) {
+  if (!x || !x.st) return;
+  khLiveIn(khA(p), {st: x.st}, true);
+  if (x.end === 'void') return khVoidRound();
+  if (x.c != null && KG.cards[x.c]) { khFlyLater(khRectOf(p === 0 ? '.khhand2' : `.ava[data-kh="${p}"]`), '.khdisc', KG.cards[x.c], 'disc'); SFX.play('cardplay'); }
+  if (x.end === 'out') { khRender(); return khRoundOver(p); }
+  KG.cur = (p + 1) % KG.n; KG.phase = 'wait'; khRender();
+  setTimeout(() => KG && id === KH_ID && khTurn(false), 350);
+}
+// 8.6.9 every step of a turn goes to the others at once (draw, take, lay down), not only its end
+function khLive() {
+  const TS = KG && KG.ts; if (!TS || !KG.endNet || !KG.st || KG.phase === 'over' || KG.phase === 'idle' || (KG.staged && KG.staged.length)) return;
+  const a = khA(KG.cur); if (a !== TS.me && !TS.net.host) return;
+  const st = khSer(), key = JSON.stringify(Object.assign({}, st, {hands: st.hands.map(x => x.slice().sort((u, v) => u - v))}));
+  if (key === KG.liveH) return; KG.liveH = key;
+  const e = {k: 'khp', st};
+  if (a === TS.me) TS.net.send({t: 'e', i: a, e}); else TS.net.append({t: 'e', i: a, e});
+}
+function khLiveIn(a, e, end) {   // another phone's step: the table as it is now, with the card's move and the sounds
+  if (!KG || !KG.st || !e.st) return;
+  const p = khL(a); if (!end && (p === 0 || (KG.endNet && !KG.netFallback))) return;   // my own turn is played here
+  const o = KG.st, oDeck = o.deck.length, oDisc = o.disc.length, oTab = o.table.reduce((t, m) => t + m.cards.length, 0), oSh = o.shuffles || 0, oOpen = o.opened[p];
+  khLoad(e.st); const st = KG.st, nTab = st.table.reduce((t, m) => t + m.cards.length, 0);
+  if ((st.shuffles || 0) > oSh) khShuffleFx();
+  else if (!end && st.deck.length < oDeck) { khFlyLater(khRectOf('.khdeck'), `.ava[data-kh="${p}"]`, null, 'seat', p); SFX.play('draw'); }
+  if (!end && st.disc.length < oDisc && (st.shuffles || 0) === oSh) { const c = (KG.took[p] || []).slice(-1)[0]; khFlyLater(khRectOf('.khdisc'), `.ava[data-kh="${p}"]`, c || null, 'seat', c ? false : p); SFX.play('pickDiscard'); }
+  if (nTab > oTab) { SFX.play('land'); if (!oOpen && st.opened[p]) khToast(`${KG.pl[p].name} نزل ✋`, 1600); }
+  if (!end) { if (KG.cur === p && KG.phase !== 'over') KG.phase = 'wait'; khRender(); }
+}
+function khShuffleFx() {   // the deck ran out: the cards are shuffled again, everybody hears it and sees it
+  SFX.play('shuffle'); khToast('🔀 خلص السحب وانخلط الورق من جديد. إذا خلص مرة ثانية ومحد قفل تنعاد الجولة', 3200);
+  const d = khEl.querySelector('.khdeck'); if (d) { d.classList.remove('khshuf'); void d.offsetWidth; d.classList.add('khshuf'); setTimeout(() => d.classList.remove('khshuf'), 1400); }
 }
 // watchdog: a bot turn that got stuck (more than 15 s) is played again from where it stopped
 setInterval(() => {
@@ -8888,7 +8945,7 @@ function khDrawDeck(p) {
     const top = st.disc.pop(), back = st.disc.slice();
     st.table = st.table.filter(m => { if (m.m.type === 'set' && m.m.slots.length === 4) { back.push(...m.cards); return false; } return true; });
     st.deck = back.sort(() => Math.random() - .5); st.disc = top ? [top] : [];
-    SFX.play('shuffle'); khToast('خلص السحب: انخلط الورق من جديد. إذا خلص مرة ثانية ومحد قفل، تنتهي الجولة وتنعاد', 3000);
+    setTimeout(khShuffleFx, 0);
     if (!st.deck.length) { khVoidRound(); return null; }
   }
   const c = st.deck.pop(); st.hands[p].push(c); return c;
@@ -9527,6 +9584,7 @@ function khRunFlights() {
 }
 function khRender() {
   if (!KG) return;
+  try { khLive(); } catch (e) {}
   khPinJokers();
   if (khDrag && khDrag.moved && Date.now() - (khDrag.lt || 0) > 3000) { if (khDrag.ghost) khDrag.ghost.remove(); khDrag = null; }   // a drag nobody finished never freezes the table
   if (khDrag && khDrag.moved) { khPendingRender = true; return; }   // never rebuild the hand under a finger
@@ -9610,7 +9668,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.6.8';
+const APP_VERSION = '8.6.9';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -13361,7 +13419,7 @@ class NetG {
   send(x) { if (this.host) this.inbox(Object.assign({u: this.R.uid}, x)); else FBX.push(fbr(this.base + '/in'), JSON.parse(JSON.stringify(Object.assign({u: this.R.uid}, x)))); }
   inbox(x) {   // the host checks what a phone sent and writes it in the log
     const i = this.order.indexOf(x.u); if (i < 0 || x.i !== i) return;
-    if (x.t === 'e') return this.append({t: 'e', i, e: x.e});
+    if (x.t === 'e') { if (this.expect && this.expect.i === i) this.expect.seen = Date.now(); return this.append({t: 'e', i, e: x.e}); }   // 8.6.9 a friend who is still playing his turn is not «away»
     if (x.t === 'a') { if (x.n < this.no) return; if (this.waiting && this.waiting.i === i && this.no === x.n) this.hostAct(i, x.n, x.a); else this.pend.push(x); }
   }
   hostAct(i, no, a, b) { if (this.sent[no] || no < this.no) return; this.sent[no] = 1; this.expect = null; this.append(Object.assign({t: 'a', i, a: a == null ? null : a}, b ? {b: 1} : {})); }
@@ -13405,7 +13463,8 @@ function mgTurn1(S, N, i, human, bot) {
     else {
       N.expect = ex; const p = N.pend.findIndex(x => x.i === i && x.n === no);
       if (p >= 0) { const x = N.pend.splice(p, 1)[0]; N.hostAct(i, no, x.a); }
-      else mgWait(S, (S.slow ? 20000 : 12000) + 15000).then(() => { if (N.no === no && !N.sent[no]) { ex.away = true; N.botFor(ex); } });   // a friend who is away: the device plays for him
+      else { ex.t0 = Date.now(); const AW = S.awayMs || (S.slow ? 20000 : 12000) + 15000;   // a friend who is away (nothing from him for a while): the device plays for him
+        const chk = () => mgWait(S, 2000).then(() => { if (N.no !== no || N.sent[no]) return; if (Date.now() - Math.max(ex.t0, ex.seen || 0) > AW) { ex.away = true; N.botFor(ex); } else chk(); }); chk(); }
     }
     N.pend = N.pend.filter(x => x.n >= no);
   }
