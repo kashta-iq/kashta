@@ -2040,6 +2040,10 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 /* 8.6.9 khabitha: the deck is shuffled again */
 .khshuf{animation:khshuf 1.3s ease}
 @keyframes khshuf{0%,100%{transform:none}15%{transform:translateX(-10px) rotate(-8deg)}30%{transform:translateX(10px) rotate(8deg)}45%{transform:translateX(-8px) rotate(-5deg)}60%{transform:translateX(8px) rotate(5deg)}80%{transform:scale(1.08)}}
+
+/* 8.6.9 the turn's frame on a friend's picture in the online games */
+.mgav.timing::after{content:"";position:absolute;inset:-6px;border-radius:50%;pointer-events:none;background:conic-gradient(var(--rc,#ffd54a) calc(var(--t,1) * 360deg),rgba(255,255,255,.14) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
+.mgav.low{--rc:#ff3b2f}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -6876,6 +6880,7 @@ function twLiveIn(e) {
     const d = e.dice; TG.dice = d; TG.turnDice = d; TG.rem = TWE.diceList(d[0], d[1]); TG.turnStart = TWE.clone(TG.s); TG.made = []; TG.undo = [];
     TG.thr = {who: 1, anim: !TG.fromOpen, list: (d[0] === d[1] ? [d[0], d[0], d[0], d[0]] : d).map(twThrowRec)}; TG.fromOpen = false; TG.phase = 'move'; SFX.play('dice'); twRender();
   }
+  if (TG.vclock) TG.vclock.start = Date.now();
   const T = TG.live, nm = e.moves || [], same = (a, b) => a.from === b.from && a.to === b.to && a.d === b.d;
   if (nm.length === T.moves.length + 1 && T.moves.every((m, i) => same(m, nm[i]))) { twDo(twLoc(nm[nm.length - 1])); T.moves = nm; twRender(); return; }
   if (nm.length === T.moves.length && T.moves.every((m, i) => same(m, nm[i]))) return;
@@ -6887,6 +6892,7 @@ function twNetSend(extra) { if (TG && TG.sendTurn) TG.sendTurn(Object.assign({di
 // the friend's turn: his record comes, his dice show and his checkers move
 async function twNetTheirs() {
   const TS = TG.ts, id = TW_ID, tk = TG.turnTok;
+  TG.vclock = {start: Date.now(), dur: twMoveMs()};
   for (;;) {
     const a = await mgTurn(TS, TS.op, () => null, async () => { const d = [twRoll(), twRoll()], L = TWE.diceList(d[0], d[1]); const sq = TWE.choose(TG.s, 1, L, d, 'normal'); return {dice: d, moves: sq.map(m => TS.me === 0 ? {from: m.from, to: m.to, d: m.d, hit: !!m.hit} : twMir(m))}; });
     if (!TG || id !== TW_ID || TG.turnTok !== tk) return;
@@ -7161,9 +7167,9 @@ function twClockStop() { if (TG && TG.clock) { clearTimeout(TG.clock.t); TG.cloc
 (function twTick() {
   try {
     if (TG && !twEl.hidden) document.querySelectorAll('#tawla .ava[data-tw]').forEach(el => {
-      const on = !!(TG.clock && +el.dataset.tw === 0 && TG.cur === 0);
+      const ck = TG.cur === 0 ? TG.clock : TG.vclock, on = !!(ck && +el.dataset.tw === TG.cur && (TG.cur === 0 || TG.ts));   // 8.6.9 online: my friend's frame too
       el.classList.toggle('timing', on);
-      if (on) { const left = Math.max(0, TG.clock.dur - (Date.now() - TG.clock.start)); if (+el.dataset.tw === 0) clockTick(TG.clock.start, left); el.style.setProperty('--t', (left / TG.clock.dur).toFixed(3)); el.classList.toggle('low', left < 3500); const sx = el.querySelector('.secs'); if (sx) sx.textContent = Math.ceil(left / 1000); }
+      if (on) { const left = Math.max(0, ck.dur - (Date.now() - ck.start)); if (+el.dataset.tw === 0) clockTick(TG.clock.start, left); el.style.setProperty('--t', (left / ck.dur).toFixed(3)); el.classList.toggle('low', left < 3500); const sx = el.querySelector('.secs'); if (sx) sx.textContent = Math.ceil(left / 1000); }
     });
   } catch (e) {}
   requestAnimationFrame(twTick);
@@ -7602,7 +7608,7 @@ function launchDomino(opt) { afkReset(); haltOthers('domino');
 function dmLeave() { const on = DG && DG.ts; DM_ID++; DG = null; dmEl.hidden = true; $('#tipBox').hidden = true; if (on) { if (NET_CUR) { NET_CUR.N.stop(); NET_CUR = null; } netQuit(); } backToShell(); }
 // 8.5 a decision of seat p (on my table): mine here, a friend's on his phone, the device's on the host's — all through the room's log
 const dmA = p => (p + DG.ts.me) % DG.n;
-function dmDecide(p, human, bot) { if (!DG.ts) return p === 0 ? human() : bot(); return mgTurn(DG.ts, dmA(p), human, bot); }
+function dmDecide(p, human, bot) { if (!DG.ts) return p === 0 ? human() : bot(); if (p !== 0) DG.vclock = {p, start: Date.now(), dur: DG.slow ? 20000 : 10000}; return mgTurn(DG.ts, dmA(p), human, bot); }
 const dmSame = (a, b) => a && b && ((a[0] === b[0] && a[1] === b[1]) || (a[0] === b[1] && a[1] === b[0]));
 const dmMv = (st, q, x) => x && x.t ? DOME.playable(st, q).find(o => dmSame(o.t, x.t) && o.side === x.side) || null : null;   // a move that came as numbers → the tile in his hand
 const dmTeam = p => DG.teams ? p % 2 : p;
@@ -8006,9 +8012,9 @@ function dmClockStop() { if (DG && DG.clock) { clearTimeout(DG.clock.t); DG.cloc
 (function dmTick() {
   try {
     if (DG && !dmEl.hidden) dmEl.querySelectorAll('.ava[data-dm]').forEach(el => {
-      const on = !!(DG.clock && +el.dataset.dm === DG.cur);
+      const ck = DG.clock || (DG.vclock && DG.cur !== 0 && DG.vclock.p === DG.cur ? DG.vclock : null), on = !!(ck && +el.dataset.dm === DG.cur);   // 8.6.9 online: the others see the frame of whoever plays
       el.classList.toggle('timing', on);
-      if (on) { const left = Math.max(0, DG.clock.dur - (Date.now() - DG.clock.start)); if (+el.dataset.dm === 0) clockTick(DG.clock.start, left); el.style.setProperty('--t', (left / DG.clock.dur).toFixed(3)); el.classList.toggle('low', left < 3500); const sx = el.querySelector('.secs'); if (sx) sx.textContent = Math.ceil(left / 1000); }
+      if (on) { const left = Math.max(0, ck.dur - (Date.now() - ck.start)); if (+el.dataset.dm === 0) clockTick(DG.clock.start, left); el.style.setProperty('--t', (left / ck.dur).toFixed(3)); el.classList.toggle('low', left < 3500); const sx = el.querySelector('.secs'); if (sx) sx.textContent = Math.ceil(left / 1000); }
     });
   } catch (e) {}
   requestAnimationFrame(dmTick);
@@ -8865,7 +8871,7 @@ const khSortFn = (a, b) => (a.j - b.j) || (a.s - b.s) || (a.r - b.r);
 async function khTurn(first) {
   const id = KH_ID; if (!KG) return;
   const p = KG.cur;
-  KG.sel = new Set(); KG.staged = []; KG.mustUse = null; KG.turnAt = Date.now(); KG.turnTok = (KG.turnTok || 0) + 1; KG.drewTok = null; KG.tookDisc = null;
+  KG.sel = new Set(); KG.staged = []; KG.mustUse = null; KG.turnAt = Date.now(); KG.vclock = KG.ts && p !== 0 ? {start: Date.now(), dur: KG.slow ? 20000 : 10000} : null; KG.turnTok = (KG.turnTok || 0) + 1; KG.drewTok = null; KG.tookDisc = null;
   // the starter holds 15 and skips the draw
   KG.phase = first && KG.st.hands[p].length === 15 ? 'play' : 'draw';
   khRender();
@@ -8920,7 +8926,7 @@ function khLiveIn(a, e, end) {   // another phone's step: the table as it is now
   else if (!end && st.deck.length < oDeck) { khFlyLater(khRectOf('.khdeck'), `.ava[data-kh="${p}"]`, null, 'seat', p); SFX.play('draw'); }
   if (!end && st.disc.length < oDisc && (st.shuffles || 0) === oSh) { const c = (KG.took[p] || []).slice(-1)[0]; khFlyLater(khRectOf('.khdisc'), `.ava[data-kh="${p}"]`, c || null, 'seat', c ? false : p); SFX.play('pickDiscard'); }
   if (nTab > oTab) { SFX.play('land'); if (!oOpen && st.opened[p]) khToast(`${KG.pl[p].name} نزل ✋`, 1600); }
-  if (!end) { if (KG.cur === p && KG.phase !== 'over') KG.phase = 'wait'; khRender(); }
+  if (!end) { if (KG.cur === p && KG.phase !== 'over') KG.phase = 'wait'; if (KG.vclock) KG.vclock.start = Date.now(); khRender(); }
 }
 function khShuffleFx() {   // the deck ran out: the cards are shuffled again, everybody hears it and sees it
   SFX.play('shuffle'); khToast('🔀 خلص السحب وانخلط الورق من جديد. إذا خلص مرة ثانية ومحد قفل تنعاد الجولة', 3200);
@@ -9424,9 +9430,9 @@ function khClockStop() { if (KG && KG.clock) { clearTimeout(KG.clock.t); KG.cloc
 (function khTick() {
   try {
     if (KG && !khEl.hidden) khEl.querySelectorAll('.ava[data-kh]').forEach(el => {
-      const on = !!(KG.clock && +el.dataset.kh === KG.cur);
+      const ck = KG.clock || (KG.vclock && KG.cur !== 0 ? KG.vclock : null), on = !!(ck && +el.dataset.kh === KG.cur);   // 8.6.9 online: the others see the frame of whoever plays
       el.classList.toggle('timing', on);
-      if (on) { const left = Math.max(0, KG.clock.dur - (Date.now() - KG.clock.start)); if (+el.dataset.kh === 0) clockTick(KG.clock.start, left); el.style.setProperty('--t', (left / KG.clock.dur).toFixed(3)); el.classList.toggle('low', left < 5000); const sx = el.querySelector('.secs'); if (sx) sx.textContent = Math.ceil(left / 1000); }
+      if (on) { const left = Math.max(0, ck.dur - (Date.now() - ck.start)); if (+el.dataset.kh === 0) clockTick(KG.clock.start, left); el.style.setProperty('--t', (left / ck.dur).toFixed(3)); el.classList.toggle('low', left < 5000); const sx = el.querySelector('.secs'); if (sx) sx.textContent = Math.ceil(left / 1000); }
     });
   } catch (e) {}
   requestAnimationFrame(khTick);
@@ -9668,7 +9674,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.6.9';
+const APP_VERSION = '8.7.0';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -13455,6 +13461,7 @@ function mgTurn(S, i, human, bot) {
 function mgTurn1(S, N, i, human, bot) {
   if (N.dead()) return new Promise(() => {});
   const no = N.no;
+  S.vclk = i === S.me ? null : {i, start: Date.now(), dur: S.awayMs ? Math.min(S.awayMs, 20000) : S.slow ? 20000 : 12000};   // 8.6.9 the others' frame on whoever plays
   const got = new Promise(res => { N.waiting = {i, res}; });
   if (i === S.me) Promise.resolve().then(human).then(a => { if (!N.dead() && N.no === no) N.send({t: 'a', i, n: no, a: a == null ? null : a}); });
   else if (N.host) {
@@ -14326,6 +14333,19 @@ setInterval(() => { try {
     R.lgDone = true; rlgResult(true); toast('خصمك ما رجع خلال دقيقة: انحسبتلك الفوز بالدوري 🏆', 3800);
   }
 } catch (e) {} }, 3000);
+
+// 8.6.9 the turn's frame on the picture of whoever plays, seen by everybody at the table
+(function mgVTick() {
+  try {
+    const S = typeof MGS !== 'undefined' ? MGS : null;
+    if (S && S.net && !mgEl.hidden) mgEl.querySelectorAll('.mgseat[data-seat] .mgav').forEach(el => {
+      const i = +el.closest('.mgseat').dataset.seat, ck = S.vclk, on = !!(ck && ck.i === i && !S.over);
+      el.classList.toggle('timing', on);
+      if (on) { const left = Math.max(0, ck.dur - (Date.now() - ck.start)); el.style.setProperty('--t', (left / ck.dur).toFixed(3)); el.classList.toggle('low', left < 3500); }
+    });
+  } catch (e) {}
+  requestAnimationFrame(mgVTick);
+})();
 
 // ---------- 8.1 أونو و«أونو لا ترحم» ----------
 // one round: the first to empty his hand wins. «اسحب» cards stack (one of the same or a bigger draw on top).
