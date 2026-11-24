@@ -2026,6 +2026,16 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 @keyframes mhbat{50%{transform:scale(1.08)}}
 .cs2cols{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}.cs2cols button{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25)}.cs2cols button.on{border-color:#ffd54a;box-shadow:0 0 0 2px #ffd54a}
 .rcem2.em{display:inline-grid;place-items:center;width:46px;height:46px;border-radius:12px;font-size:28px}
+
+/* 8.6.8 ludo: stacked pieces and the dice queue */
+.ldring{position:absolute;border-radius:50%;pointer-events:none;z-index:1}
+.ldn{position:absolute;top:-22%;right:-22%;min-width:46%;height:46%;border-radius:50%;background:#1b0f08;color:#ffd54a;font:900 9px/1 Tahoma,sans-serif;display:flex;align-items:center;justify-content:center;border:1px solid #e8c47a}
+.lddq{display:flex;gap:5px}.lddq .mgdf{width:30px;height:30px;padding:4px;border-radius:7px;background:linear-gradient(#fffdf6,#e9dfc8);border:2px solid #e8c47a;box-sizing:border-box}.lddq .mgdf i{width:5px;height:5px}
+
+/* 8.6.8 a seat the device plays for its player */
+.mgseat.auto .mgav img,.mgav.auto img{filter:grayscale(.8) brightness(.55)}
+.mgav{position:relative}.mgauto{position:absolute;left:-6px;bottom:-4px;font-size:15px;font-style:normal;line-height:1;background:#1b0f08;border:1px solid #e8c47a;border-radius:50%;padding:2px;z-index:2}
+.ava > .mic{display:none!important}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -9600,7 +9610,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.6.7';
+const APP_VERSION = '8.6.8';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -12136,6 +12146,7 @@ const MIC_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" str
 // every avatar at a table carries a fixed mic button, added the moment the avatar is drawn (no flicker).
 // a table where talking is not allowed: the mic shows closed and can't be opened
 function micFix(root) {
+  return;   // 8.6.8 the old mic on every picture is gone: the talk is the «اضغط واحجي» button of the online rooms
   const el = [twEl, dmEl, khEl, $('#app')].find(x => x && !x.hidden); if (!el) return;
   el.querySelectorAll('.ava').forEach(a => {
     const seat = a.dataset.tw ?? a.dataset.dm ?? a.dataset.kh ?? a.dataset.seat; if (seat == null) return;
@@ -13115,9 +13126,10 @@ function mgTop(S, title, extra) {
 // a player's chip: photo, name, and a small line (cards in hand, score…)
 function mgSeat(S, i, line, opts = {}) {
   const p = S.pl[i];
-  return h('div', {class: 'mgseat' + (opts.on ? ' on' : '') + (opts.out ? ' out' : '') + (opts.cls ? ' ' + opts.cls : ''), 'data-seat': i},
-    h('span', {class: 'mgav'}, h('img', {src: p.av, alt: ''}), opts.badge != null ? h('i', {class: 'mgbd'}, opts.badge) : ''),
-    h('span', {class: 'mgnm'}, i === (S.me || 0) ? 'انت' : p.name + (p.left ? ' 🤖' : '')), line != null ? h('small', {class: 'mgln'}, line) : '');
+  const auto = !!(p.left || p.auto);   // 8.6.8 the device plays this seat: a dim picture and the device's mark beside it
+  return h('div', {class: 'mgseat' + (opts.on ? ' on' : '') + (opts.out ? ' out' : '') + (auto ? ' auto' : '') + (opts.cls ? ' ' + opts.cls : ''), 'data-seat': i},
+    h('span', {class: 'mgav'}, h('img', {src: p.av, alt: ''}), opts.badge != null ? h('i', {class: 'mgbd'}, opts.badge) : '', auto ? h('i', {class: 'mgauto', title: 'يلعب الجهاز مكانه'}, '🤖') : ''),
+    h('span', {class: 'mgnm'}, i === (S.me || 0) ? 'انت' : p.name), line != null ? h('small', {class: 'mgln'}, line) : '');
 }
 // the turn clock: the human has 10 s (20 s slow); when it runs out the device plays for him (onOut)
 let MG_CLK = null;
@@ -13294,7 +13306,7 @@ function netEnter(code, host) {
     if (!room) { R.closeLobby(); netGone('الغرفة انسدت'); return; }
     R.room = room;
     const hostOn = room.seats && room.seats[room.host] && room.seats[room.host].on !== false;
-    if (!hostOn && room.host !== R.uid) { if (!R.hostT) R.hostT = setTimeout(() => { if (NETR === R && R.room && !(R.room.seats[R.room.host] || {}).on) { R.closeLobby(); netGone('المضيف طلع، انتهت الغرفة'); } }, 10000); }   // a short blip is forgiven
+    if (!hostOn && room.host !== R.uid) { if (!R.hostT) R.hostT = setTimeout(() => { if (NETR === R && R.room && !(R.room.seats[R.room.host] || {}).on) { if (R.room.lg) { const had = rlgHas(R.room.lg); if (!had) try { rlgResult(true); } catch (e) {} R.closeLobby(); netGone(had ? 'المضيف طلع، انتهت الغرفة' : 'خصمك طلع وما رجع خلال دقيقة: انحسبتلك الفوز بالدوري 🏆'); } else { R.closeLobby(); netGone('المضيف طلع، انتهت الغرفة'); } } }, room.lg ? 60000 : 10000); }   // a short blip is forgiven
     else if (R.hostT) { clearTimeout(R.hostT); R.hostT = null; }
     if (room.st === 'play' && room.gid && room.gid !== R.gid) { R.gid = room.gid; R.closeLobby(); netLaunch(R); return; }
     if (room.st === 'lobby' && room.lg && R.host && !R.lgGo) { const H = (room.lg.order || []).filter(u => u && !u.startsWith('bot:')); if (H.every(u => room.seats && room.seats[u] && room.seats[u].on !== false)) { R.lgGo = true; setTimeout(() => netStart(), 1200); } }
@@ -13352,11 +13364,12 @@ class NetG {
     if (x.t === 'e') return this.append({t: 'e', i, e: x.e});
     if (x.t === 'a') { if (x.n < this.no) return; if (this.waiting && this.waiting.i === i && this.no === x.n) this.hostAct(i, x.n, x.a); else this.pend.push(x); }
   }
-  hostAct(i, no, a) { if (this.sent[no] || no < this.no) return; this.sent[no] = 1; this.expect = null; this.append({t: 'a', i, a: a == null ? null : a}); }
+  hostAct(i, no, a, b) { if (this.sent[no] || no < this.no) return; this.sent[no] = 1; this.expect = null; this.append(Object.assign({t: 'a', i, a: a == null ? null : a}, b ? {b: 1} : {})); }
   pump() {   // what came in the log is applied in its order, and only while the game waits for a turn
     while (this.waiting && this.L[this.p] !== undefined) {
       const x = this.L[this.p]; this.p++;
-      if (x.t === 'a') { const w = this.waiting; if (x.i !== w.i) { console.warn('net: turn mismatch', x, w); continue; } this.waiting = null; this.no++; w.res(x.a); return; }
+      if (x.t === 'a') { const sp = this.S && this.S.pl[x.i]; if (sp && this.order[x.i] && !String(this.order[x.i]).startsWith('bot:')) sp.auto = !!x.b;   // 8.6.8 the device played this seat for its player (shown on his picture)
+        const w = this.waiting; if (x.i !== w.i) { console.warn('net: turn mismatch', x, w); continue; } this.waiting = null; this.no++; w.res(x.a); return; }
       if (x.t === 'e') this.ev(x);
     }
   }
@@ -13370,7 +13383,7 @@ class NetG {
     this.order.forEach((u, i) => { const p = this.S.pl[i]; if (p && p.remote && !p.goneSent && !p.goneT && seats[u] && seats[u].on === false)
       p.goneT = setTimeout(() => { p.goneT = null; const x = this.R.room && this.R.room.seats && this.R.room.seats[u]; if (!this.dead() && p.remote && !p.goneSent && (!x || x.on === false)) { p.goneSent = true; this.append({t: 'e', i: 0, e: {sys: 'bot', i}}); } }, 10000); });
   }
-  async botFor(ex) { if (ex.botRun) return; ex.botRun = true; const a = await ex.bot(); if (!this.dead()) this.hostAct(ex.i, ex.no, a); }
+  async botFor(ex) { if (ex.botRun) return; ex.botRun = true; const a = await ex.bot(); if (!this.dead()) this.hostAct(ex.i, ex.no, a, ex.away); }
 }
 // a turn of seat i: me → my tap; the device's seat → the host works it out; a friend → his phone. All come back through the log.
 function mgTurn(S, i, human, bot) {
@@ -13392,7 +13405,7 @@ function mgTurn1(S, N, i, human, bot) {
     else {
       N.expect = ex; const p = N.pend.findIndex(x => x.i === i && x.n === no);
       if (p >= 0) { const x = N.pend.splice(p, 1)[0]; N.hostAct(i, no, x.a); }
-      else mgWait(S, (S.slow ? 20000 : 12000) + 15000).then(() => { if (N.no === no && !N.sent[no]) N.botFor(ex); });   // a friend who is away: the device plays for him
+      else mgWait(S, (S.slow ? 20000 : 12000) + 15000).then(() => { if (N.no === no && !N.sent[no]) { ex.away = true; N.botFor(ex); } });   // a friend who is away: the device plays for him
     }
     N.pend = N.pend.filter(x => x.n >= no);
   }
@@ -13830,7 +13843,7 @@ function mgReplies(S) {
 }
 function mgStk(S, a, i) {   // over a seat of the new games (mine above my picture, the others under theirs)
   if (!mgAlive(S)) return;
-  tableSay(mgEl, `.mgseat[data-seat="${a}"] .mgav`, a === S.me ? 0 : a + 1, i);
+  tableSay(mgEl, `.mgseat[data-seat="${a}"] .mgav, .mhp2[data-seat="${a}"] .mhnm`, a === S.me ? 0 : a + 1, i);
 }
 window.__mgStk = i => mgStk(MGS, MGS.me, i);
 
@@ -14026,7 +14039,7 @@ window.__rcSet = t => rcSettings(t);
 // rooms/<club>/lg = {id, g, per, tables, fee, prizes, voice, az, by, at, end, st: join|play|done|cancel, reg/<uid>, teams: [[uid | 'bot:name']], res/<match>: 'a'|'b', rooms/<match>: code}
 const RLG = {};
 const rlgL = () => RC.data && RC.data.lg && RC.data.lg.id ? RC.data.lg : null;
-const rlgGames = () => PLAYV_VS.filter(g => g.k !== 'dealmon' && g.k !== 'mafia' && g.k !== 'solitaire');
+const rlgGames = () => PLAYV_VS.filter(g => g.k !== 'mafia' && g.k !== 'solitaire');
 function rlgTeamsOf(L) {   // before the start: the registered players in order (pairs for زوجي), the empty places «بانتظار…»
   if (L.teams) return L.teams;
   const R = Object.entries(L.reg || {}).sort((a, b) => a[1].at - b[1].at).map(x => x[0]), t = [];
@@ -14099,7 +14112,20 @@ async function rlgPlay(m) {
     const mate = my.find(u => u !== FB.uid);
     FORCE_NAMES = L.per === 2 ? [rlgName(L, op[0]).replace(' 🤖', ''), rlgName(L, mate).replace(' 🤖', ''), rlgName(L, op[1]).replace(' 🤖', '')] : [rlgName(L, op[0]).replace(' 🤖', '')];
     RLG.local = {club: code, id: L.id, mid: m.id, a: A, b: Bt};
+    if (g.k === 'dealmon') { MODE = L.per === 2 ? 'team' : 'normal'; nBots = (L.per === 2 ? 4 : 2) - 1; SLOW = false; $('#diff').value = 'normal'; return launch(); }
     return launchAny(g.k, {mode: L.per === 2 ? 'team' : 'normal', count: L.per === 2 ? 4 : 2, slow: false, diff: 'normal'});
+  }
+  if (g.k === 'dealmon') {   // ديل مون has its own room: the first player opens it and invites, and starts it from its lobby
+    const ex = (L.rooms || {})[m.id];
+    RLG.local = {club: code, id: L.id, mid: m.id, a: A, b: Bt};
+    if (ex) return netJoin(ex);
+    if (hum[0] !== FB.uid) { RLG.local = null; return toast(`استنى ${rlgName(L, hum[0])} يفتح غرفة المباراة، توصلك دعوة 📨`, 3000); }
+    await netCreate(GAMES.find(x => x.k === 'dealmon'), L.per === 2 ? 'team' : 'normal', {});
+    let rc = null; for (let t = 0; t < 40 && !rc; t++) { await new Promise(r => setTimeout(r, 250)); rc = NET.mode === 'host' && NET.code; }
+    if (!rc) return;
+    await FBX.set(fbr(`rooms/${code}/lg/rooms/${m.id}`), rc);
+    for (const u of hum) if (u !== FB.uid) try { await rsInviteTo(u, rc, 'dealmon'); } catch (e) {}
+    return toast('انفتحت غرفة ديل مون وانرسلت الدعوة ✅ أول ما يدخل خصمك اضغط «ابدأ»', 3600);
   }
   const ex = (L.rooms || {})[m.id];
   if (ex) { const v = (await FBX.get(fbr('rooms/' + ex))).val(); if (v && v.st === 'lobby' && v.lg && v.lg.mid === m.id) return netJoin(ex); }
@@ -14214,6 +14240,33 @@ function rlgCreate(code, d) {
   return el;
 }
 window.__rlg = {coins: () => [PROFILE.coins, (PROFILE.rwQ || []).length], L: () => rlgL(), tree: () => { const L = rlgL(); return L && rlgTree(L); }, mine: () => { const L = rlgL(); return L && rlgMine(L, rlgTree(L)); }, play: () => { const L = rlgL(); return rlgPlay(rlgMine(L, rlgTree(L))); }, result: w => rlgResult(w), R: RLG, open: () => rcLeague(), room: () => NETR && NETR.room};
+
+const rlgHas = lg => { const L = RC.data && RC.data.lg; return !!(L && L.id === lg.id && L.res && L.res[lg.mid]); };
+// ---------- 8.6.8 the league's minute: a player who does not come, or goes away, for a minute ----------
+// one against one: he loses the match. More real players at the table: the device goes on playing for him.
+setInterval(() => { try {
+  const R = NETR, room = R && R.room, lg = room && room.lg; if (!lg || !FB || rlgHas(lg)) return;
+  const H = (lg.order || []).filter(u => u && !String(u).startsWith('bot:')), duel = H.length === 2 && (lg.a || []).length === 1 && (lg.b || []).length === 1;
+  const now = Date.now(); R.lgT0 = R.lgT0 || now;
+  if (room.st === 'lobby') {
+    if (!R.host || now - R.lgT0 < 60000 || R.lgDone) return;
+    const inn = H.filter(u => room.seats && room.seats[u] && room.seats[u].on !== false);
+    if (inn.length >= H.length) return;
+    R.lgDone = true;
+    if (duel || inn.length < 2) { rlgResult(true); toast('خصمك ما دخل خلال دقيقة: انحسبتلك الفوز 🏆', 3500); setTimeout(() => { try { R.closeLobby && R.closeLobby(); netQuit(); } catch (e) {} }, 1500); }
+    else { toast('اللي ما دخل خلال دقيقة يلعب مكانه الجهاز 🤖', 3000); netStart(); }
+    return;
+  }
+  if (room.st !== 'play' || !duel || R.lgDone) return;
+  const op = H.find(u => u !== FB.uid), x = room.seats && room.seats[op];
+  R.lgOff = R.lgOff || {};
+  if (!x || x.on === false) R.lgOff[op] = R.lgOff[op] || now; else delete R.lgOff[op];
+  const N = NET_CUR && NET_CUR.N, oi = N ? N.order.indexOf(op) : -1, sp = N && N.S && oi >= 0 ? N.S.pl[oi] : null;
+  if (sp) { if (sp.auto || sp.left) sp.autoAt = sp.autoAt || now; else sp.autoAt = null; }
+  if ((R.lgOff[op] && now - R.lgOff[op] > 60000) || (sp && sp.autoAt && now - sp.autoAt > 60000)) {
+    R.lgDone = true; rlgResult(true); toast('خصمك ما رجع خلال دقيقة: انحسبتلك الفوز بالدوري 🏆', 3800);
+  }
+} catch (e) {} }, 3000);
 
 // ---------- 8.1 أونو و«أونو لا ترحم» ----------
 // one round: the first to empty his hand wins. «اسحب» cards stack (one of the same or a bigger draw on top).
@@ -14547,7 +14600,7 @@ const LD_SIDE = [
 ];
 const LD_SAFE = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
 MG.ludo = {name: 'لودو', players: o => o.mode === 'tutorial' ? 2 : o.mode === 'team' ? 4 : Math.min(4, Math.max(2, o.count || 2)), start: ldStart,
-  rules: ['كل واحد عنده 4 قطع (بالسريعة 2) بالبيت مالته، ولازم يوصلهن كلهن للنص.', 'تطلّع قطعة من البيت بس من ترمي 6، والستة تنطيك رمية ثانية (بس الستة الثالثة ورا بعض تحرك دورك).',
+  rules: ['كل واحد عنده 4 قطع (بالسريعة 2) بالبيت مالته، ولازم يوصلهن كلهن للنص.', 'تطلّع قطعة من البيت بس من ترمي 6. من تطلعلك ستة ترمي مرة ثانية قبل ما تلعب، وبعدين تلعب كل الأرقام وحدة وحدة (وإذا طلعت ثلاث ستات ورا بعض يروح دورك).',
     'تمشي القطعة بعدد الزار مع عقارب الساعة، ومن تكمل الدورة تدخل الممر مالها للنص، ولازم تدخل النص بالعدد الصحيح.', 'إذا وكفت على قطعة خصم ترجعها لبيته وترمي مرة ثانية. المربعات اللي بيها نجمة ومربعات البداية آمنة، ما ينكتل بيها أحد.',
     'بالزوجي: الألوان المتقابلة فريق، واللي يخلص قطعه يلعب بقطع شريكه.']};
 function ldSeats(n) { return n === 2 ? [0, 2] : n === 3 ? [0, 1, 2] : [0, 1, 2, 3]; }
@@ -14581,26 +14634,37 @@ function ldHits(S, o, rel) {
 async function ldLoop(S) {
   try {
     while (mgAlive(S) && !S.over) {
-      const p = S.cur; S.phase = 'roll'; S.moves = []; ldRender(S);
-      await mgTurn(S, p, () => new Promise(res => { S.wait = () => { S.wait = null; mgClockStop(); res(1); }; mgClockStart(S, () => S.wait && S.wait()); ldRender(S); }), async () => { await mgWait(S, 650); return 1; });
-      if (!mgAlive(S)) return;
-      const d = 1 + Math.floor(S.rnd() * 6); S.die = d; S.rolling = true; ldRender(S); try { SFX.play('dice', .6); } catch (e) {}
-      await mgWait(S, 450); S.rolling = false;
-      let again = d === 6;
-      if (d === 6) { S.sixes++; if (S.sixes === 3) { mgSay('ثلاث ستات ورا بعض: راح الدور'); S.sixes = 0; again = false; await mgWait(S, 900); S.cur = ldNext(S, p); continue; } }
-      const mv = ldMoves(S, p, d); S.moves = mv;
-      if (!mv.length) { ldRender(S); await mgWait(S, 800); if (!again) { S.sixes = 0; S.cur = ldNext(S, p); } continue; }
-      // the choice travels as the move's number in the list (the same list on every phone)
-      const k = await mgTurn(S, p, () => { S.phase = 'move'; ldRender(S); return new Promise(res => { S.wait = m => { S.wait = null; mgClockStop(); res(Math.max(0, mv.indexOf(m))); }; mgClockStart(S, () => S.wait && S.wait(ldBest(S, p, mv))); ldRender(S); }); },
-        async () => { if (mv.length > 1) await mgWait(S, 450); return Math.max(0, mv.indexOf(ldBest(S, p, mv))); });
-      const pick = mv[k] || mv[0];
-      if (!mgAlive(S)) return;
-      S.phase = 'anim'; S.moves = [];
-      const bonus = await ldMove(S, pick);
-      if (!mgAlive(S)) return;
-      if (ldCheck(S)) return;
-      if (again || bonus) continue;   // a 6, a hit or a piece home: roll again
-      S.sixes = 0; S.cur = ldNext(S, p);
+      const p = S.cur, dice = []; let burn = false; S.dice = []; S.die = null;
+      // 8.6.8 the rolls first: a 6 rolls again (the third 6 burns the turn), then the dice are played one by one
+      while (true) {
+        S.phase = 'roll'; S.moves = []; ldRender(S);
+        await mgTurn(S, p, () => new Promise(res => { S.wait = () => { S.wait = null; mgClockStop(); res(1); }; mgClockStart(S, () => S.wait && S.wait()); ldRender(S); }), async () => { await mgWait(S, 650); return 1; });
+        if (!mgAlive(S)) return;
+        const d = 1 + Math.floor(S.rnd() * 6); S.die = d; S.rolling = true; ldRender(S); try { SFX.play('dice', .6); } catch (e) {}
+        await mgWait(S, 450); S.rolling = false; dice.push(d); S.dice = dice.slice(); ldRender(S);
+        if (d !== 6) break;
+        if (dice.length === 3) { burn = true; break; }
+        mgSay(p === S.me ? 'ستة! ارمي مرة ثانية 🎲' : `${S.pl[p].name} طلعتله ستة ويرمي مرة ثانية`); await mgWait(S, 350);
+      }
+      if (burn) { mgSay(p === S.me ? 'ثلاث ستات ورا بعض: راح دورك' : `ثلاث ستات لـ${S.pl[p].name}: راح دوره`); await mgWait(S, 1100); S.dice = []; S.cur = ldNext(S, p); continue; }
+      let bonus = false;
+      while (dice.length && mgAlive(S) && !S.over) {
+        const d = dice[0]; S.die = d;
+        const mv = ldMoves(S, p, d); S.moves = mv;
+        if (!mv.length) { ldRender(S); await mgWait(S, 700); dice.shift(); S.dice = dice.slice(); continue; }
+        // the choice travels as the move's number in the list (the same list on every phone)
+        const k = await mgTurn(S, p, () => { S.phase = 'move'; ldRender(S); return new Promise(res => { S.wait = m => { S.wait = null; mgClockStop(); res(Math.max(0, mv.indexOf(m))); }; mgClockStart(S, () => S.wait && S.wait(ldBest(S, p, mv))); ldRender(S); }); },
+          async () => { if (mv.length > 1) await mgWait(S, 450); return Math.max(0, mv.indexOf(ldBest(S, p, mv))); });
+        const pick = mv[k] || mv[0];
+        if (!mgAlive(S)) return;
+        S.phase = 'anim'; S.moves = []; dice.shift(); S.dice = dice.slice();
+        if (await ldMove(S, pick)) bonus = true;
+        if (!mgAlive(S)) return;
+        if (ldCheck(S)) return;
+      }
+      S.dice = [];
+      if (bonus) continue;   // a hit or a piece home: roll again
+      S.cur = ldNext(S, p);
     }
   } catch (e) { console.error('ludo', e); }
 }
@@ -14695,13 +14759,20 @@ function ldRender(S) {
   // pieces: the ones sharing a cell sit a little apart
   const at = {};
   S.pcs.forEach((pc, p) => pc.forEach((x, i) => { const [r, c] = ldCell(S, p, i, x); const key = x === -1 || x === 56 ? 'b' + p + i : r + ',' + c; (at[key] = at[key] || []).push({p, i, x, r, c}); }));
-  for (const key in at) at[key].forEach((t, k, arr) => {
-    const off = arr.length > 1 ? (k - (arr.length - 1) / 2) * .28 : 0, m = mv.find(z => z.o === t.p && z.i === t.i);
+  // 8.6.8 pieces on one square sit on top of each other: mine on top, and a ring of each colour under it
+  const mineSide = q => q === S.me || (S.team && q === ldMate(S, S.me));
+  for (const key in at) { const arr = at[key].sort((a, b) => (mineSide(a.p) ? 1 : 0) - (mineSide(b.p) ? 1 : 0) || (mv.some(z => z.o === a.p && z.i === a.i) ? 1 : 0) - (mv.some(z => z.o === b.p && z.i === b.i) ? 1 : 0));
+    const stack = arr.length > 1 && key[0] !== 'b';
+    arr.forEach((t, k) => {
+    const m = mv.find(z => z.o === t.p && z.i === t.i), top = k === arr.length - 1;
     const sz = t.x === 56 ? .5 : t.x === -1 ? 1.05 : .86, U = v => (v + .3) / 15.6 * 100;   // the board's picture runs from -.3 to 15.3
+    const lift = stack ? k * .06 : 0, pos = `left:${U(t.c + .5 - sz / 2)}%;top:${U(t.r + .5 - lift - sz / 2)}%;width:${sz / 15.6 * 100}%;height:${sz / 15.6 * 100}%;`;
+    if (stack && top) { const cols = [...new Set(arr.slice(0, -1).map(x => LD_SIDE[S.side[x.p]].hex))];
+      board.append(h('i', {class: 'ldring', style: pos + `box-shadow:${cols.map((c, j) => `0 0 0 ${2 + j * 2.5}px ${c}`).join(',')}`})); }
     board.append(h('button', {type: 'button', 'data-k': t.p + ':' + t.i, class: 'ldpc' + (m ? ' go' : '') + (t.x === 56 ? ' home' : ''), disabled: !m, 'aria-label': `قطعة ${LD_SIDE[S.side[t.p]].name}`,
-      style: `left:${U(t.c + .5 + off - sz / 2)}%;top:${U(t.r + .5 - off * .4 - sz / 2)}%;width:${sz / 15.6 * 100}%;height:${sz / 15.6 * 100}%;${lpcCss(LD_SIDE[S.side[t.p]].col)}`,
-      onclick: () => m && S.wait && S.wait(m)}));
-  });
+      style: pos + `z-index:${2 + k};${lpcCss(LD_SIDE[S.side[t.p]].col)}`,
+      onclick: () => m && S.wait && S.wait(m)}, stack && top ? h('b', {class: 'ldn'}, String(arr.length)) : ''));
+    }); }
   const seat = p => { const sd = LD_SIDE[S.side[p]], home = S.pcs[p].filter(x => x === 56).length;
     return mgSeat(S, p, `${sd.name} · ${home}/${S.np}`, {on: S.cur === p && !S.over, cls: 'ldseat ld-' + sd.col}); };
   const die = h('button', {type: 'button', class: 'mgdie' + (S.rolling ? ' roll' : '') + (myTurn && S.phase === 'roll' && S.wait ? ' go' : ''), disabled: !(myTurn && S.phase === 'roll' && S.wait), 'aria-label': 'ارمي الزار', onclick: () => S.wait && S.wait()}, mgDieFace(S.die));
@@ -14712,7 +14783,7 @@ function ldRender(S) {
     h('div', {class: 'ldrow', dir: 'ltr'}, ...L.filter(p => [1, 2].includes(S.side[p])).sort((a, b) => S.side[a] - S.side[b]).map(seat)),
     board,
     h('div', {class: 'ldrow', dir: 'ltr'}, ...L.filter(p => [0, 3].includes(S.side[p])).sort((a, b) => S.side[a] - S.side[b]).map(seat)),
-    h('div', {class: 'mgdiebar'}, die, h('b', {class: 'unoinfo'}, info)));
+    h('div', {class: 'mgdiebar'}, die, (S.dice || []).length > 1 || ((S.dice || []).length === 1 && S.phase !== 'roll') ? h('span', {class: 'lddq'}, ...(S.dice || []).map(v => mgDieFace(v))) : '', h('b', {class: 'unoinfo'}, info)));
   if (MG_CLK) mgEl.append(MG_CLK.bar);
 }
 // a die face drawn with dots
@@ -15002,7 +15073,7 @@ function solDrag(S, e, from, idx) {
 function solStock(S) {
   if (S.over) return;
   if (!S.stock.length) { if (!S.waste.length) return; S.stock = S.waste.reverse().map(c => c); S.waste = []; }
-  else for (let k = 0; k < S.draw && S.stock.length; k++) S.waste.push(S.stock.pop());
+  else for (let k = 0; k < S.draw && S.stock.length; k++) { const c = S.stock.pop(); c.up = true; S.waste.push(c); }   // 8.6.8 a card from the pile is open (it stayed closed when it went to a column)
   S.hint = null; try { SFX.play('draw', .4); } catch (e) {} solRender(S);
 }
 async function solAfter(S) {
@@ -15169,7 +15240,7 @@ function mhPerson(S, i) {
   };
   const canFak = S.phase === 'find' && S.hold !== S.MT && tm !== S.MT && !!S.wait && !S.open[hands[0]] && !S.open[hands[1]];
   const nervous = S.tells[i] && MH_TELL.includes(S.tells[i]);
-  return h('div', {class: 'mhp2' + (nervous ? ' shake' : '') + (holdTeam && S.phase === 'find' ? ' hold' : '')},
+  return h('div', {class: 'mhp2' + (nervous ? ' shake' : '') + (holdTeam && S.phase === 'find' ? ' hold' : ''), 'data-seat': i},
     nervous ? h('i', {class: 'mhtell'}, '💧') : '',
     h('div', {class: 'mhhands2', dir: 'ltr'}, fist(hands[1], 'l'), fist(hands[0], 'r')),
     h('b', {class: 'mhnm'}, i !== S.me ? p.name : 'انت'),
@@ -15531,8 +15602,8 @@ async function mfTalk(S) {
   mfSys(S, '💬 النقاش: منو تشكون بيه؟');
   const boss = !S.net || S.net.host;   // the device's players talk on one phone only (the host's), and their lines go to all
   if (boss) {
-    const hunch = S.diff === 'easy' ? .25 : S.diff === 'hard' ? .5 : .38, M = mfLive(S).filter(j => mfIsM(S, j));
-    mfLive(S).forEach(i => { if (i !== S.me && !S.pl[i].friend && !mfIsM(S, i) && M.length && Math.random() < hunch) { const t = mgPick(M); S.sus[i][t] += .9; if (Math.random() < .6) mfAccuse(S, i, t, .3); } });
+    const hunch = S.diff === 'easy' ? .1 : S.diff === 'hard' ? .3 : .18, M = mfLive(S).filter(j => mfIsM(S, j));
+    mfLive(S).forEach(i => { if (i !== S.me && !S.pl[i].friend && !mfIsM(S, i) && M.length && Math.random() < hunch) { const t = mgPick(M); S.sus[i][t] += .5; if (Math.random() < .4) mfAccuse(S, i, t, .25); } });
   }
   S.done = {};
   const bots = mfLive(S).filter(i => i !== S.me && (!S.pl[i].friend || S.pl[i].left));
@@ -15540,7 +15611,8 @@ async function mfTalk(S) {
   const end = () => new Promise(res => { S.talkEnd = () => { S.talkEnd = null; mgClockStop(); res(1); }; S.talkDone = () => { const H = mfLive(S).filter(i => i === S.me || S.pl[i].friend && !S.pl[i].left); if (H.every(i => S.done[i]) && S.talkEnd) S.talkEnd(); };
     mgClockStart(S, () => S.talkEnd && S.talkEnd(), S.slow ? 40000 : 25000); mfRender(S); });
   if (S.net && !S.net.host) S.talkEnd = () => { mgEv(S, {k: 'done'}, () => {}); S.talkEnd = null; mfRender(S); };   // a friend's «خلص النقاش» tells the host
-  if (boss) (async () => { for (const i of mgShuffle(bots.slice())) { if (!mgAlive(S) || S.phase !== 'talk') return; await mgWait(S, 900 + Math.random() * 900); if (S.phase !== 'talk' || !S.alive[i]) return; const t = mfBotLine(S, i); if (t) { if (S.net) S.net.append({t: 'e', i, e: {k: 'say', t}}); else mfSay(S, i, t); } } })();
+  if (boss) (async () => { for (const i of mgShuffle(bots.slice())) { if (!mgAlive(S) || S.phase !== 'talk') return; await mgWait(S, 900 + Math.random() * 900); if (S.phase !== 'talk' || !S.alive[i]) return; const t = mfBotLine(S, i); if (t) { if (S.net) S.net.append({t: 'e', i, e: {k: 'say', t}}); else mfSay(S, i, t); } }
+    await mgWait(S, 1200); if (S.phase === 'talk' && S.talkDone) S.talkDone(); })();   // 8.6.8 no living real player left to talk (I am dead): the talk ends with the device's lines
   mfRender(S);
   await mgTurn(S, 0, end, end);
   S.talkEnd = null; S.talkDone = null; S.phase = 'post'; mgClockStop(); mfRender(S);
@@ -15563,7 +15635,7 @@ function mfBotSave(S, d) { if (S.claimedPol != null && S.alive[S.claimedPol] && 
 function mfBotAsk(S, p) { const L = mfLive(S).filter(i => i !== p && S.known[i] == null); return L.length ? L.sort((a, b) => S.sus[p][b] - S.sus[p][a] + (Math.random() - .5) * .4)[0] : null; }
 function mfBotLine(S, i) {
   S.accuser = S.accuser || {};
-  const lvl = S.diff === 'easy' ? .4 : S.diff === 'hard' ? .9 : .65;
+  const lvl = S.diff === 'easy' ? .3 : S.diff === 'hard' ? .7 : .45;
   if (S.roles[i] === 'p') {   // a policeman who found a mafia tells it (a smart one waits for a sure one)
     const f = Object.keys(S.known).map(Number).find(k => S.known[k] && S.alive[k]);
     if (f != null && Math.random() < lvl) { S.claimedPol = i; S.accuser[i] = (S.accuser[i] || 0) + 2; mfAccuse(S, i, f, 1.2); return `أني الشرطي 🕵️ وسألت عن ${S.pl[f].name}: طلع مافيا!`; }
@@ -15571,7 +15643,7 @@ function mfBotLine(S, i) {
   if (mfIsM(S, i)) {   // the mafia pushes on a citizen (never on a mate)
     const t = mfTop(S, i, mfLive(S).filter(j => mfIsM(S, j))); if (t == null) return null;
     if (S.claimedPol != null && S.alive[S.claimedPol] && Math.random() < .5) { mfAccuse(S, i, S.claimedPol, .4); return `${S.pl[S.claimedPol].name} يكذب، هو مو شرطي!`; }
-    mfAccuse(S, i, t, .5); S.accuser[i] = (S.accuser[i] || 0) + 1;
+    mfAccuse(S, i, t, .7); S.accuser[i] = (S.accuser[i] || 0) + 1;
     return mgPick([`أشك بـ${S.pl[t].name}، ساكت هواية 🤨`, `${S.pl[t].name} كلامه ما يدخل العقل`, 'أني بريء والله، دوروا زين']);
   }
   const t = mfTop(S, i); if (t == null) return null;
@@ -15584,7 +15656,8 @@ function mfBotVote(S, i) {
   if (mfIsM(S, i)) { const t = S.mfTarget != null && S.alive[S.mfTarget] && !mfIsM(S, S.mfTarget) ? S.mfTarget : mfTop(S, i, mfLive(S).filter(j => mfIsM(S, j))); S.mfTarget = t; return t; }
   if (S.roles[i] === 'p') { const f = Object.keys(S.known).map(Number).find(k => S.known[k] && S.alive[k]); if (f != null) return f; }
   const L = mfLive(S).filter(j => j !== i), P = S.pub || {};   // a citizen goes with his own hunch and with what the table says
-  return L.length ? L.sort((a, b) => (S.sus[i][b] + 1.0 * (P[b] || 0)) - (S.sus[i][a] + 1.0 * (P[a] || 0)))[0] : null;
+  if (L.length && Math.random() < (S.diff === 'hard' ? .15 : .3)) return mgPick(L);   // 8.6.8 a citizen is not sure: sometimes a vote on a hunch
+  return L.length ? L.sort((a, b) => (S.sus[i][b] + .6 * (P[b] || 0) + Math.random() * .35) - (S.sus[i][a] + .6 * (P[a] || 0) + Math.random() * .35))[0] : null;
 }
 function mfCheck(S) {
   const L = mfLive(S), m = L.filter(i => mfIsM(S, i)).length, town = L.length - m;
@@ -15612,7 +15685,7 @@ function mfRender(S) {
     const p = S.pl[i], dead = !S.alive[i], can = S.can && S.can(i), show = dead || i === S.me || (meM && mfIsM(S, i)) || S.phase === 'end';
     const votes = Object.values(S.votes || {}).filter(v => v === i).length, knew = me === 'p' && S.known[i] != null;
     return h('button', {type: 'button', class: 'mfseat' + (dead ? ' dead' : '') + (can ? ' go' : '') + (i === S.me ? ' me' : ''), disabled: !can, onclick: () => can && S.wait && S.wait(i)},
-      h('span', {class: 'mgav'}, h('img', {src: p.av, alt: ''}), votes ? h('i', {class: 'mgbd'}, votes) : ''),
+      h('span', {class: 'mgav' + (p.left || p.auto ? ' auto' : '')}, h('img', {src: p.av, alt: ''}), votes ? h('i', {class: 'mgbd'}, votes) : '', p.left || p.auto ? h('i', {class: 'mgauto'}, '🤖') : ''),
       h('b', {}, i !== S.me ? p.name : 'انت'),
       show ? h('small', {class: 'mfr r-' + S.roles[i]}, MF_ROLE[S.roles[i]][1] + ' ' + MF_ROLE[S.roles[i]][0]) : knew ? h('small', {class: 'mfr ' + (S.known[i] ? 'r-m' : 'r-c')}, S.known[i] ? '🔪 مافيا' : '✅ بريء') : '',
       dead ? h('i', {class: 'mfx'}, '☠️') : '');
