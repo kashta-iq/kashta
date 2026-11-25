@@ -2077,6 +2077,7 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 .cwli{display:flex;align-items:center;gap:8px;text-align:right;padding:7px 9px;border-radius:8px;border:1px solid rgba(232,196,122,.35);background:rgba(255,255,255,.04);color:inherit;cursor:pointer}
 .cwli b{color:#ffd54a;min-width:22px}.cwli span{flex:1}.cwli small{opacity:.7}.cwli.ok{opacity:.55;text-decoration:line-through}
 .cwpick{display:flex;flex-direction:column;gap:8px}
+.cwc.ok{background:#d9f5dc}.cwc.ok span{color:#17803a}.cwc.ok.on{background:#c4ecc8}.cwc.ok.cur{background:#ffc93c}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -4575,7 +4576,7 @@ window.__dmDbg = () => ({G, ME});   // for the automatic tests
 function startGame() {
   haltOthers('dealmon');
   setSpeed('1.4');
-  MOVE_MS = SLOW ? 20000 : 10000; ANSWER_MS = SLOW ? 25000 : 15000;
+  MOVE_MS = 40000; ANSWER_MS = 40000;   // 8.7.4 one time for every game: 40 s
   const name = (PROFILE.name || 'أنا').trim() || 'أنا';
   const cfg = [{name, human: true}];
   const names = botNames();
@@ -5206,7 +5207,7 @@ function rulesModal(first) {
     s.append(h('p', {}, 'لعبة ورق عراقية تنافسية، من 2 إلى 4 لاعبين. الفكرة: تسيطر على أكبر عدد من المدن والأموال، وتسرق من منافسيك وتدمر مبانيهم بأوراق الأكشن.'));
     sec('الفوز', ['أول لاعب يجمع 3 مجموعات كاملة من معالم المدن بألوان مختلفة يفوز.', 'إذا كان عدد اللاعبين 2 فقط، الفوز بـ 5 مجموعات.']);
     sec('طرق اللعب', ['جولة تعليمية: لعبة قصيرة مع نصائح، بدون مؤقت.', 'لعبة عادية: الفوز بـ 3 مجموعات (أو 5 للاعبين اثنين).', 'زوجي ٢ ضد ٢: الشريك ما يهاجمك ولا يطلب منك فلوس، والفريق يفوز بـ 4 مجموعات مختلفة بينكم.', 'لعبة سريعة: الفوز بمجموعتين كاملتين.']);
-    sec('الدور', ['كل حركة لها 10 ثواني، والرد على طلب فلوس أو هجوم له 15 ثانية. الدائرة حول صورة اللاعب تتناقص مع الوقت، وإذا خلص الوقت يلعب الجهاز عنه.', 'كل لاعب يبدأ بـ 5 أوراق.', 'بداية دورك تسحب ورقتين، ثم تلعب لحد 3 حركات. تقدر تلعب حركة أو حركتين أو تنهي دورك متى ما تريد.', 'إذا حان دورك وبيدك 8 أوراق، تتلف ورقة في الساحة قبل ما تسحب.', 'إذا حان دورك وما بيدك أي ورقة، تسحب 5 أوراق.', 'لما تخلص رزمة السحب، تنخلط أوراق الساحة وترجع رزمة سحب.']);
+    sec('الدور', ['كل دور له 40 ثانية (والرد على طلب فلوس أو هجوم هم 40 ثانية). الدائرة حول صورة اللاعب تتناقص مع الوقت، وإذا خلص الوقت يلعب الجهاز عنه.', 'كل لاعب يبدأ بـ 5 أوراق.', 'بداية دورك تسحب ورقتين، ثم تلعب لحد 3 حركات. تقدر تلعب حركة أو حركتين أو تنهي دورك متى ما تريد.', 'إذا حان دورك وبيدك 8 أوراق، تتلف ورقة في الساحة قبل ما تسحب.', 'إذا حان دورك وما بيدك أي ورقة، تسحب 5 أوراق.', 'لما تخلص رزمة السحب، تنخلط أوراق الساحة وترجع رزمة سحب.']);
     sec('الحركات', ['تضع معلم في أرضك لتجمع المجموعات.', 'تضع فلوس أو ورقة أكشن أو إيجار في البنك (كل ورقة لها قيمة بالزاوية). المعالم ما تنحط بالبنك.', 'تلعب ورقة أكشن في الساحة الجماعية.', 'تنقل أرض بلونين أو جوكر من لون للون ثاني.', 'أوراق الرد (تحلم، كول غيرها، البادي اظلم، سد بسد، صك نقدي، اذن الطرشة) تنلعب بدور الخصم لما يلعب ضدك، وما تحسب حركة.', 'أدفع واسكت وزايد خير تنلعب ويا ورقتها، وكل وحدة تحسب حركة إضافية.']);
     sec('الدفع', ['أي إيجار أو غرامة أو هدية تندفع من الأوراق اللي على الطاولة، مو من يدك.', 'الدافع يختار يدفع من فلوس البنك أو من أراضيه أو الاثنين سوية، والأرض المدفوعة تروح لأرض المستلم. إذا كل اللي عنده ما يكفي، يدفع كل شي.', 'إذا ما عندك فلوس ولا أراضي، الورقة ما تشتغل عليك.', 'الفكة ما ترجع: إذا مطلوب منك 2 وعندك ورقة 3 تدفع الـ 3.', 'سد بسد ما لها قيمة بالبنك، وإذا انحطت بالبنك ما تشتغل بعد. لما تنلعب كرد تروح ليد اللي طلب الفلوس.', 'صك نقدي يسد المبلغ إذا فلوس بنكك ناقصة، وينرمي بالساحة. قيمته 3 مليون إذا انحط بالبنك.']);
     sec('الأراضي', ['الرقم تحت المعلم هو الإيجار حسب عدد أوراقك من ذلك اللون.', 'الجوكر يحل محل أي أرض، وقيمته بقيمة أرض اللون اللي ينزل فيه. المجموعة الكاملة من الجوكر مسموحة.', 'البيت +3، الفندق +4 (يحتاج بيت قبله)، المول +5. تنضاف على مجموعة كاملة فقط، وتقدر تجمعها على نفس المجموعة.', 'أمن نفسك: تحمي مجموعة كاملة حماية دائمة من كل الأوراق: محد ياخذ منها شي، ولا تنطى منها أرض ولا تندفع منها. أي أرض أو جوكر تحطه على لونها ينحمي وياها. انت بس تكدر تحرك جوكرك أو أرضك أم اللونين منها، ومن تحركها تطلع من الحماية.', 'لا توصلني: تحمي كل أراضيك من السرقة لمدة جولتين.', 'إذا انكسرت مجموعة فيها بيت أو فندق أو مول أو أمن نفسك، ترجع هاي الأوراق لبنك صاحبها.']);
@@ -9739,7 +9740,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.7.3';
+const APP_VERSION = '8.7.4';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -10704,7 +10705,7 @@ function khRow() {
 }
 function roomSheet(g, m) {
   return setupSheet('أنشئ غرفة', (s, close) => {
-    let slow = !!PROFILE.set.slow, diff = PROFILE.set.diff || 'normal', who = 'bot';
+    let slow = false, diff = PROFILE.set.diff || 'normal', who = 'bot';
     const b1 = h('button', {type: 'button', class: 'o1 sel', 'aria-pressed': 'true', onclick: () => { who = 'bot'; b1.classList.add('sel'); b2.classList.remove('sel'); }}, h('span', {class: 'i'}, '🤖'), 'العب ضد الجهاز');
     const b2 = h('button', {type: 'button', class: 'o2', onclick: () => { who = 'friends'; b2.classList.add('sel'); b1.classList.remove('sel'); }}, h('span', {class: 'i'}, '👥'), 'ادعو أصدقائك');
     const opts = h('div', {class: 'bigopts'}, b1, b2);
@@ -10713,7 +10714,7 @@ function roomSheet(g, m) {
     const drawDf = () => { df.innerHTML = ''; [['easy', 'سهل'], ['normal', 'متوسط'], ['hard', 'صعب']].forEach(([v, a]) => df.append(h('button', {type: 'button', class: v === diff ? 'on' : '', onclick: () => { diff = v; drawDf(); }}, a))); };
     drawSp(); drawDf();
     s.append(h('div', {class: 'lbl'}, 'تلعب ويّا منو؟'), opts,
-      h('div', {class: 'lbl'}, 'سرعة اللعب'), m === 'quick' ? h('p', {class: 'hint'}, 'اللعبة السريعة: 10 ثواني لكل حركة.') : sp,
+      h('p', {class: 'hint'}, '⏱ كل دور 40 ثانية بكل الألعاب، وإذا تأخرت يكمّل الجهاز عنك لحد ما تضغط «رجوع».'),
       h('div', {class: 'lbl'}, 'مستوى الجهاز'), df,
       h('button', {type: 'button', class: 'btn gobtn', onclick: () => { if (who !== 'friends') NEXT_VOICE = false; close({slow, diff, friends: who === 'friends'}); }}, 'ابدأ اللعب ▶'));
   });
@@ -15873,19 +15874,27 @@ function cwKey(S, k) {
   const w = cwWord(S); if (!w) return;
   const [r, c] = S.sel, i = w.cells.findIndex(([y, x]) => y === r && x === c);
   if (k === '⌫') {
-    if (S.inp[r][c] && !S.shown.has(r + ',' + c)) S.inp[r][c] = '';
-    else if (i > 0) { const [y, x] = w.cells[i - 1]; S.sel = [y, x]; if (!S.shown.has(y + ',' + x)) S.inp[y][x] = ''; }
+    if (S.inp[r][c] && !cwFixed(S, r, c)) S.inp[r][c] = '';
+    else if (i > 0) { const [y, x] = w.cells[i - 1]; S.sel = [y, x]; if (!cwFixed(S, y, x)) S.inp[y][x] = ''; }
     S.bad.delete(S.sel[0] + ',' + S.sel[1]); try { SFX.play('chk', .3); } catch (e) {} return cwRender(S);
   }
-  if (!S.shown.has(r + ',' + c)) { S.inp[r][c] = k; S.bad.delete(r + ',' + c); }
+  if (!cwFixed(S, r, c)) { S.inp[r][c] = k; S.bad.delete(r + ',' + c); }
   try { SFX.play('lstep', .4); } catch (e) {}
   // on to the next empty square of the word (or the next square)
-  const rest = w.cells.slice(i + 1), nx = rest.find(([y, x]) => !S.inp[y][x]) || rest[0];
+  const rest = w.cells.slice(i + 1), nx = rest.find(([y, x]) => !S.inp[y][x]) || rest.find(([y, x]) => !cwFixed(S, y, x)) || rest[0];
   if (nx) S.sel = nx;
   cwAfter(S);
 }
+// 8.7.4 a word solved right is locked: its letters can not be changed any more (green)
+const cwFixed = (S, r, c) => S.shown.has(r + ',' + c) || (S.locked && S.locked.has(r + ',' + c));
+function cwLock(S) {
+  S.locked = S.locked || new Set(); let neu = false;
+  for (const w of S.W) { const cells = [...w.a].map((_, i) => [w.r + (w.d === 'd' ? i : 0), w.x + (w.d === 'a' ? i : 0)]);
+    if (cells.every(([y, x], i) => S.inp[y][x] === w.a[i]) && cells.some(([y, x]) => !S.locked.has(y + ',' + x))) { cells.forEach(([y, x]) => S.locked.add(y + ',' + x)); neu = true; } }
+  if (neu) try { SFX.play('bank', .35); } catch (e) {}
+}
 function cwAfter(S) {
-  cwRender(S);
+  cwLock(S); cwRender(S);
   const full = S.G.every((row, r) => row.every((g, c) => !g || S.inp[r][c]));
   if (!full) return;
   const wrong = []; S.G.forEach((row, r) => row.forEach((g, c) => { if (g && S.inp[r][c] !== g.l) wrong.push(r + ',' + c); }));
@@ -15927,7 +15936,7 @@ function cwRender(S) {
     const g = S.G[r][c], key = r + ',' + c;
     if (!g) { grid.append(h('i', {class: 'cwb'})); continue; }
     const cur = S.sel && S.sel[0] === r && S.sel[1] === c && !S.over;
-    grid.append(h('button', {type: 'button', class: 'cwc' + (on.has(key) ? ' on' : '') + (cur ? ' cur' : '') + (S.bad.has(key) ? ' bad' : '') + (S.shown.has(key) ? ' shown' : ''), onclick: () => cwTap(S, r, c), 'aria-label': 'مربع'},
+    grid.append(h('button', {type: 'button', class: 'cwc' + (on.has(key) ? ' on' : '') + (cur ? ' cur' : '') + (S.bad.has(key) ? ' bad' : '') + (S.shown.has(key) ? ' shown' : S.locked && S.locked.has(key) ? ' ok' : ''), onclick: () => cwTap(S, r, c), 'aria-label': 'مربع'},
       S.num[key] ? h('small', {}, String(S.num[key])) : '', h('span', {}, S.inp[r][c] || '')));
   }
   const clue = w ? h('div', {class: 'cwclue', onclick: () => cwClues(S)}, h('b', {}, `${w.n} ${w.d === 'a' ? 'أفقي' : 'عمودي'}`), h('span', {}, w.c), h('small', {}, `(${w.a.length} حروف)`)) : h('div', {class: 'cwclue'}, h('span', {}, S.over ? 'انتهت اللعبة' : ''));
@@ -15942,7 +15951,7 @@ function cwRender(S) {
 document.addEventListener('keydown', e => { const S = typeof MGS !== 'undefined' ? MGS : null; if (!S || S.k !== 'crossword' || S.over || mgEl.hidden || document.querySelector('.ov')) return;
   if (e.key === 'Backspace') { e.preventDefault(); return cwKey(S, '⌫'); } const k = cwNorm(e.key); if (k.length === 1 && /[ء-ي]/.test(k)) { e.preventDefault(); cwKey(S, k); } });
 window.__cw = () => MGS && MGS.k === 'crossword' ? MGS : null;
-window.__cwSolveStep = S => { const w = S.W.find(w => [...w.a].some((l, i) => S.inp[w.r + (w.d === 'd' ? i : 0)][w.x + (w.d === 'a' ? i : 0)] !== l)); if (!w) return; S.sel = [w.r, w.x]; S.dir = w.d; for (const l of w.a) cwKey(S, l); };
+window.__cwSolveStep = S => { const w = S.W.find(w => [...w.a].some((l, i) => S.inp[w.r + (w.d === 'd' ? i : 0)][w.x + (w.d === 'a' ? i : 0)] !== l)); if (!w) return; S.dir = w.d; [...w.a].forEach((l, i) => { S.sel = [w.r + (w.d === 'd' ? i : 0), w.x + (w.d === 'a' ? i : 0)]; cwKey(S, l); }); };
 
 // ---------- 8.1 محيبس ----------
 // two teams (1 v 1 up to 10 v 10). The team with the ring hides it in one closed fist; the other team's «بات» opens the fists one by one:
