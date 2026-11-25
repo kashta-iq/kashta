@@ -7631,7 +7631,7 @@ document.body.append(dmEl);
 const dmDelay = (ms, id) => new Promise((res, rej) => setTimeout(() => id === DM_ID ? res() : rej('stop'), ms));
 function launchDomino(opt) { afkReset(); haltOthers('domino');
   DM_ID++;
-  const n = opt.mode === 'team' ? 4 : opt.mode === 'tutorial' ? 3 : opt.count;
+  const n = opt.mode === 'team' ? 4 : opt.mode === 'tutorial' ? 3 : Math.min(4, Math.max(2, +opt.count || 4));   // 8.7.6 never 1 (a solo game's count once leaked here)
   let names = botNames(), TS = null;
   const pl = [{name: PROFILE.name || 'أنا', av: myAvatar(), human: true}];
   if (opt.net) {   // 8.5 with friends: the seats by the room's order; my seat is at the bottom (the others turn with me)
@@ -8802,7 +8802,7 @@ const KH_PRE = [];
 function launchKhabitha(opt) { afkReset(); haltOthers('khabitha');
   if (!KH_PRE.length) for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) { const im = new Image(); im.src = khImg(s + '-' + r); KH_PRE.push(im); }
   KH_ID++;
-  const n = opt.mode === 'team' ? 4 : opt.mode === 'tutorial' ? 3 : opt.count;
+  const n = opt.mode === 'team' ? 4 : opt.mode === 'tutorial' ? 3 : Math.min(4, Math.max(2, +opt.count || 4));   // 8.7.6 never 1 (a solo game's count once leaked here)
   const names = botNames();
   const pl = [{name: PROFILE.name || 'أنا', av: myAvatar(), human: true}];
   let TS = null;
@@ -9745,7 +9745,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.7.5';
+const APP_VERSION = '8.7.6';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -9775,6 +9775,7 @@ function loadProfile() {
     const s = JSON.parse(localStorage.getItem(PKEY) || 'null');
     if (s && typeof s === 'object') {
       for (const k of ['owned', 'eq', 'stats', 'set']) s[k] = Object.assign({}, d[k], s[k] || {});
+      if (s.set.count != null && !(s.set.count >= 2)) s.set.count = 4;   // 8.7.6 a solo game (سوليتير، الكلمات المتقاطعة) once saved 1 as the count
       if (!s.owned.tchk.includes('wood_d')) s.owned.tchk.push('wood_d'); if (!s.owned.tboard.includes('walnutb')) s.owned.tboard.push('walnutb');   // the free defaults
       if (!Array.isArray(s.owned.stk)) {   // stickers are single now: keep the ones from packs that were bought
         const had = s.owned.packs || []; s.owned.stk = ['s0', 's2', 's12'];
@@ -10029,7 +10030,7 @@ function modesSheet(g, v) {
     PLAY_VAR = v || null;
     const az = g.k === 'domino' && v === 'fives', kh = g.k === 'khabitha' && (v === 'k81' || v === 'k71');
     const modes = ['tutorial', 'normal', 'team', 'quick'].filter(x => g.modes.includes(x) && !(az && x === 'quick'));
-    let m = 'normal', count = g.k === 'tawla' ? 2 : (PROFILE.set.count || 4);
+    let m = 'normal', count = g.k === 'tawla' ? 2 : (PROFILE.set.count >= 2 ? PROFILE.set.count : 4);
     s.classList.add('mm2');
     const hd = h('div', {class: 'mhd'}, h('b', {}, kh ? 'خبيثة' : (v && VAR_NAME(g.k, v)) || g.name));
     const grid = h('div', {class: 'modegrid mm' + modes.length});
@@ -10054,14 +10055,14 @@ function modesSheet(g, v) {
     };
     draw();
     const vr = voiceRow(true), azr = az ? azRow() : null, khr = kh ? khRow() : null;
-    const go = online => { const voice = vr.on(), azt = azr ? azr.val() : 0; if (khr) { PLAY_VAR = khr.val(); PROFILE.set.khv = PLAY_VAR; } if (g.k !== 'tawla' && m !== 'team' && !(typeof MG !== 'undefined' && MG[g.k] && MG[g.k].sizes)) PROFILE.set.count = count; saveProfile();
+    const go = online => { const voice = vr.on(), azt = azr ? azr.val() : 0; if (khr) { PLAY_VAR = khr.val(); PROFILE.set.khv = PLAY_VAR; } if (g.k !== 'tawla' && m !== 'team' && !fixed() && count >= 2 && !(typeof MG !== 'undefined' && MG[g.k] && MG[g.k].sizes)) PROFILE.set.count = count; saveProfile();
       close(); playMode(g, m, {count, online, voice, azt}); };
     s.append(h('div', {class: 'min'}, ...['tr', 'tl', 'br', 'bl'].map(c => h('i', {class: 'mmorn ' + c, style: mmSpr('orn'), 'aria-hidden': 'true'})), h('button', {type: 'button', class: 'mmx', 'aria-label': 'إغلاق', onclick: () => close()}, '✕'), hd, grid,
       h('div', {class: 'mmbody'}, h('div', {class: 'pnl'}, typeof MG !== 'undefined' && MG[g.k] && MG[g.k].sizes ? (MG[g.k].sizeLabel || 'عدد كل فريق') : 'عدد اللاعبين'), cnt, note, khr ? khr.el : '', azr ? azr.el : '', vr.el,
         h('div', {class: 'pnb'},
           h('button', {type: 'button', 'aria-label': 'أنشئ غرفة', onclick: () => go(false)}, h('img', {src: uiImg('bred'), alt: 'أنشئ غرفة'})),
           h('button', {type: 'button', 'aria-label': 'العب أونلاين', onclick: () => go(true)}, h('img', {src: uiImg('bblue'), alt: 'العب أونلاين'}))),
-        typeof netCreate === 'function' && g.k !== 'solitaire' && g.k !== 'crossword' ? h('button', {type: 'button', class: 'netbtn', onclick: () => { const c = fixed() || count; if (g.k !== 'tawla' && m !== 'team' && !(typeof MG !== 'undefined' && MG[g.k] && MG[g.k].sizes)) PROFILE.set.count = count; saveProfile(); close(); netCreate(g, m, {count: c, v: PLAY_VAR || null, azt: azr ? azr.val() : 0}); }}, '👥 العب ويه ربعك (غرفة بكود)') : '')));
+        typeof netCreate === 'function' && g.k !== 'solitaire' && g.k !== 'crossword' ? h('button', {type: 'button', class: 'netbtn', onclick: () => { const c = fixed() || count; if (g.k !== 'tawla' && m !== 'team' && !fixed() && count >= 2 && !(typeof MG !== 'undefined' && MG[g.k] && MG[g.k].sizes)) PROFILE.set.count = count; saveProfile(); close(); netCreate(g, m, {count: c, v: PLAY_VAR || null, azt: azr ? azr.val() : 0}); }}, '👥 العب ويه ربعك (غرفة بكود)') : '')));
   });
 }
 const MODE_INFO = {tutorial: ['🎓', 'جولة تعليمية'], normal: ['🃏', 'لعبة عادية'], team: ['🤝', 'زوجي ٢ ضد ٢'], quick: ['⚡', 'لعبة سريعة']};
@@ -10686,7 +10687,7 @@ function playNowSheet(g, m) {
     s.classList.add('pnsheet');
     const az = g.k === 'domino' && PLAY_VAR === 'fives';   // ازنيف: the players agree how far the game goes (150 or 250)
     const fixed = g.k === 'tawla' ? 2 : m === 'team' ? 4 : mgFixed(g.k, m);
-    let count = fixed || PROFILE.set.count || 4;
+    let count = fixed || (PROFILE.set.count >= 2 ? PROFILE.set.count : 4);
     const AV = n => Array.from({length: n}, (_, i) => h('img', {src: avatarURL(i % 2 ? 'f' : 'm', i + 1), alt: ''}));
     const cnt = h('div', {class: 'pncnt', role: 'group', 'aria-label': 'عدد اللاعبين'});
     const draw = () => { cnt.innerHTML = ''; for (const n of [2, 3, 4]) cnt.append(h('button', {type: 'button', class: 'pnc' + (n === count ? ' on' : '') + (fixed && n !== fixed ? ' off' : ''), disabled: !!fixed && n !== fixed, 'aria-pressed': n === count ? 'true' : 'false', 'aria-label': `${n} لاعبين`, onclick: () => { count = n; draw(); }},
