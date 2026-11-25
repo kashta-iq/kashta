@@ -2044,6 +2044,19 @@ body:not(.watching) .qb-shield,body:not(.watching) .qb-watchbar{display:none!imp
 /* 8.6.9 the turn's frame on a friend's picture in the online games */
 .mgav.timing::after{content:"";position:absolute;inset:-6px;border-radius:50%;pointer-events:none;background:conic-gradient(var(--rc,#ffd54a) calc(var(--t,1) * 360deg),rgba(255,255,255,.14) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
 .mgav.low{--rc:#ff3b2f}
+
+/* 8.7.1 ludo: a die beside every player, the dice window over a piece */
+.ldsw{display:flex;align-items:center;gap:8px}.ldsw.r{flex-direction:row-reverse}
+.lddw{display:flex;flex-direction:column;align-items:center;gap:4px}
+.lddie{width:46px;height:46px;opacity:.8;border:2px solid transparent}
+.lddie.on{opacity:1!important;border:3px solid #ffd54a!important;box-shadow:0 0 0 2px #000,0 0 18px rgba(255,213,74,.9)!important}
+.lddie.go{animation:lddgo 1s ease-in-out infinite}
+@keyframes lddgo{50%{transform:scale(1.1)}}
+.ldinfo{min-height:34px}
+.ldpick{position:absolute;transform:translate(-50%,-112%);z-index:30;display:flex;gap:6px;padding:6px 8px;border-radius:12px;background:#1f9a4a;border:2px solid #e8c47a;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+.ldpick::after{content:"";position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);border:8px solid transparent;border-top-color:#e8c47a;border-bottom:0}
+.ldpick button{width:38px;height:38px;border-radius:50%;border:2px solid #0d4d24;background:#2fbf63;color:#fff;font:900 20px/1 Tahoma,sans-serif;cursor:pointer}
+.lddw .lddq .mgdf{width:22px;height:22px;padding:3px;border-radius:5px}.lddw .lddq .mgdf i{width:4px;height:4px}
 /* ===================== TAWLA board ===================== */
 .tw{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:stretch;
   background:radial-gradient(60% 45% at 50% 45%,rgba(224,32,26,.18),transparent 70%),var(--room-pat, repeating-conic-gradient(from 45deg at 50% 50%,rgba(243,207,122,.045) 0 25%,transparent 0 50%) 0 0/34px 34px),linear-gradient(160deg,var(--room-2),var(--room) 55%,#120410);
@@ -6867,8 +6880,19 @@ const twAbs = m => TG.ts.me === 0 ? {from: m.from, to: m.to, d: m.d, hit: !!m.hi
 const twLoc = m => TG.ts.me === 0 ? m : twMir(m);   // the shared board's move, on mine
 // my turn online: everything I do goes out as one record when the turn ends
 function twNetMine() {
-  const TS = TG.ts; if (!TS) return;
-  mgTurn(TS, TS.me, () => new Promise(res => { TG.sendTurn = a => { TG.sendTurn = null; res(a); }; }), async () => null);
+  const TS = TG.ts; if (!TS) return; const tk = TG.turnTok, id = TW_ID;
+  mgTurn(TS, TS.me, () => new Promise(res => { TG.sendTurn = a => { TG.sendTurn = null; res(a); }; }), async () => null).then(async a => {
+    // 8.7.1 the host played my turn (my phone went quiet): his dice and moves are the game, mine are dropped
+    if (!TG || id !== TW_ID || TG.turnTok !== tk || TG.cur !== 0 || !TG.sendTurn) return;
+    TG.sendTurn = null; twClockStop(); toast('تأخرت، فلعب الجهاز دورك 🤖', 2500);
+    if (a && a.dice) {
+      if (TG.turnStart && TG.made.length) TG.s = TWE.clone(TG.turnStart);
+      const d = a.dice; TG.dice = d; TG.turnDice = d; TG.rem = TWE.diceList(d[0], d[1]); TG.made = []; TG.undo = []; TG.sel = null; TG.phase = 'move'; twRender();
+      for (const m of a.moves || []) { if (!TG || TG.turnTok !== tk) return; twDo(twLoc(m)); twRender(); await twDelay(420, id); }
+      if (TWE.won(TG.s, 0)) return twGameOver(0);
+    }
+    TG.cur = 1; TG.phase = 'roll'; twStartTurn();
+  });
 }
 // 8.6.9 move by move: my dice and every move go out as they happen; my friend sees them at once
 function twLive() { const TS = TG && TG.ts; if (!TS || TG.cur !== 0 || !TG.turnDice) return; TS.net.send({t: 'e', i: TS.me, e: {k: 'twl', tk: TG.turnTok, dice: TG.turnDice, moves: TG.made.map(twAbs)}}); }
@@ -6892,7 +6916,7 @@ function twNetSend(extra) { if (TG && TG.sendTurn) TG.sendTurn(Object.assign({di
 // the friend's turn: his record comes, his dice show and his checkers move
 async function twNetTheirs() {
   const TS = TG.ts, id = TW_ID, tk = TG.turnTok;
-  TG.vclock = {start: Date.now(), dur: twMoveMs()};
+  TG.vclock = {start: Date.now(), dur: 40000};
   for (;;) {
     const a = await mgTurn(TS, TS.op, () => null, async () => { const d = [twRoll(), twRoll()], L = TWE.diceList(d[0], d[1]); const sq = TWE.choose(TG.s, 1, L, d, 'normal'); return {dice: d, moves: sq.map(m => TS.me === 0 ? {from: m.from, to: m.to, d: m.d, hit: !!m.hit} : twMir(m))}; });
     if (!TG || id !== TW_ID || TG.turnTok !== tk) return;
@@ -6920,7 +6944,7 @@ async function twNetTheirs() {
   }
 }
 function twLeave() { const on = TG && TG.ts; TW_ID++; TG = null; twEl.hidden = true; twTip(null); if (on) { if (NET_CUR) { NET_CUR.N.stop(); NET_CUR = null; } netQuit(); } backToShell(); }
-function twMoveMs() { return TG.slow ? 20000 : 10000; }
+function twMoveMs() { return 40000; }
 
 async function twNewGame() {
   const id = TW_ID;
@@ -7592,7 +7616,7 @@ function launchDomino(opt) { afkReset(); haltOthers('domino');
   if (opt.net) {   // 8.5 with friends: the seats by the room's order; my seat is at the bottom (the others turn with me)
     const N = opt.net, id = DM_ID, seats = N.room.seats || {}, r = netRng(N.seed ^ 0x2f6b), bn = mgShuffle(BOT_NAMES.slice().sort(), r).filter(x => !N.order.some(u => seats[u] && seats[u].n === x));
     const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid, uid: u} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
-    TS = {net: N, me: N.me, pl: A, slow: false, aliveFn: () => !!DG && DG.ts === TS && id === DM_ID, sayAt: (a, i) => dmSay((a - N.me + n) % n, i), say: t => toast(t, 2000)};
+    TS = {net: N, me: N.me, pl: A, slow: false, awayMs: 45000, aliveFn: () => !!DG && DG.ts === TS && id === DM_ID, sayAt: (a, i) => dmSay((a - N.me + n) % n, i), say: t => toast(t, 2000)};
     for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend, uid: x.uid}); }
   } else
   for (let i = 1; i < n; i++) pl.push({name: names[i - 1] + (opt.mode === 'team' && i === 2 ? ' 🤝' : ''), av: botAv(names[i - 1], i), human: false});
@@ -7608,7 +7632,7 @@ function launchDomino(opt) { afkReset(); haltOthers('domino');
 function dmLeave() { const on = DG && DG.ts; DM_ID++; DG = null; dmEl.hidden = true; $('#tipBox').hidden = true; if (on) { if (NET_CUR) { NET_CUR.N.stop(); NET_CUR = null; } netQuit(); } backToShell(); }
 // 8.5 a decision of seat p (on my table): mine here, a friend's on his phone, the device's on the host's — all through the room's log
 const dmA = p => (p + DG.ts.me) % DG.n;
-function dmDecide(p, human, bot) { if (!DG.ts) return p === 0 ? human() : bot(); if (p !== 0) DG.vclock = {p, start: Date.now(), dur: DG.slow ? 20000 : 10000}; return mgTurn(DG.ts, dmA(p), human, bot); }
+function dmDecide(p, human, bot) { if (!DG.ts) return p === 0 ? human() : bot(); if (p !== 0) DG.vclock = {p, start: Date.now(), dur: 40000}; return mgTurn(DG.ts, dmA(p), human, bot); }
 const dmSame = (a, b) => a && b && ((a[0] === b[0] && a[1] === b[1]) || (a[0] === b[1] && a[1] === b[0]));
 const dmMv = (st, q, x) => x && x.t ? DOME.playable(st, q).find(o => dmSame(o.t, x.t) && o.side === x.side) || null : null;   // a move that came as numbers → the tile in his hand
 const dmTeam = p => DG.teams ? p % 2 : p;
@@ -8641,6 +8665,9 @@ const KHAI = (() => {
     if (must && hand.includes(must)) return must;      // could not use it after all: it goes back
     let pool = hand.filter(c => !c.j); if (!pool.length) pool = hand;
     if (!pool.length) return null;
+    // 8.7.1 never a card that goes on the next player's groups once he has laid down (the rule), unless there is nothing else
+    if (hand.length > 1) { const q = (p + 1) % ctx.n, feedsQ = c => st.opened[q] && st.table.some(m => m.owner === q && (KH.layoff(m, [c]) || KH.jokerSwap(m, c)));
+      const okp = pool.filter(c => !feedsQ(c)); if (okp.length) pool = okp; else { const any = hand.filter(c => !feedsQ(c)); if (any.length) pool = any; } }
     const smart = lvl !== 'easy';
     const base = smart ? KH.bestMelds(hand).value : 0;
     const next = (p + 1) % ctx.n;
@@ -8761,7 +8788,7 @@ function launchKhabitha(opt) { afkReset(); haltOthers('khabitha');
   if (opt.net) {   // 8.5 with friends: my seat at the bottom, the others turn with me; every turn ends by sending the whole table
     const N = opt.net, id = KH_ID, seats = N.room.seats || {}, r = netRng(N.seed ^ 0x51a7), bn = mgShuffle(BOT_NAMES.slice().sort(), r).filter(x => !N.order.some(u => seats[u] && seats[u].n === x));
     const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid, uid: u} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
-    TS = {net: N, me: N.me, pl: A, slow: false, awayMs: 40000, aliveFn: () => !!KG && KG.ts === TS && id === KH_ID, sayAt: (a, i) => khSay((a - N.me + n) % n, i), say: t => toast(t, 2000), onEv: (a, e) => e && e.k === 'khp' && khLiveIn(a, e)};
+    TS = {net: N, me: N.me, pl: A, slow: false, awayMs: 45000, aliveFn: () => !!KG && KG.ts === TS && id === KH_ID, sayAt: (a, i) => khSay((a - N.me + n) % n, i), say: t => toast(t, 2000), onEv: (a, e) => e && e.k === 'khp' && khLiveIn(a, e)};
     for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend, uid: x.uid}); }
   } else
   for (let i = 1; i < n; i++) pl.push({name: names[i - 1] + (opt.mode === 'team' && i === 2 ? ' 🤝' : ''), av: botAv(names[i - 1], i), human: false});
@@ -8845,6 +8872,15 @@ async function khNewRound() {
   }
   KG.cur = KG.starter; KG.sel = new Set(); KG.staged = []; KG.mustUse = null;
   KG.st.hands[0].sort(khSortFn); KG.rows = new Map();
+  // 8.7.1 the rule of the four pairs: a hand with 4 pairs of the very same card (8 cards) is dealt again
+  const fp = KG.st.hands.findIndex(hd => { const k = {}; hd.forEach(c => { if (!c.j) k[c.r + ':' + c.s] = (k[c.r + ':' + c.s] || 0) + 1; }); return Object.values(k).filter(v => v >= 2).length >= 4; });
+  if (fp >= 0) {
+    khRender(); SFX.play('shuffle');
+    await modal((s2, close) => { s2.append(h('h3', {style: 'text-align:center'}, '🔄 تنعاد الجولة'), h('p', {style: 'text-align:center'}, `${fp === 0 ? 'إجتك' : 'إجت ' + KG.pl[fp].name} 4 أزواج ورق متشابه (8 ورقات): حسب القانون ينعاد التوزيع.`),
+      h('div', {class: 'autobar'}, h('i', {})), h('button', {type: 'button', class: 'btn gobtn', onclick: () => close()}, 'وزّع من جديد ▶')); setTimeout(close, 3000); }, {dismiss: false});
+    if (!KG || id !== KH_ID) return;
+    KG.round--; KG.nextStarter = KG.starter; return khNewRound();
+  }
   // from the second round: the cards are shuffled first, then dealt
   if (KG.round > 1) { SFX.play('shuffle'); await khDelay(1250, id).catch(() => {}); if (!KG || id !== KH_ID) return; }
   khRender(); khTip('start');
@@ -8871,7 +8907,7 @@ const khSortFn = (a, b) => (a.j - b.j) || (a.s - b.s) || (a.r - b.r);
 async function khTurn(first) {
   const id = KH_ID; if (!KG) return;
   const p = KG.cur;
-  KG.sel = new Set(); KG.staged = []; KG.mustUse = null; KG.turnAt = Date.now(); KG.vclock = KG.ts && p !== 0 ? {start: Date.now(), dur: KG.slow ? 20000 : 10000} : null; KG.turnTok = (KG.turnTok || 0) + 1; KG.drewTok = null; KG.tookDisc = null;
+  KG.sel = new Set(); KG.staged = []; KG.mustUse = null; KG.turnAt = Date.now(); KG.vclock = KG.ts && p !== 0 ? {start: Date.now(), dur: 40000} : null; KG.turnTok = (KG.turnTok || 0) + 1; KG.drewTok = null; KG.tookDisc = null;
   // the starter holds 15 and skips the draw
   KG.phase = first && KG.st.hands[p].length === 15 ? 'play' : 'draw';
   khRender();
@@ -8920,11 +8956,13 @@ function khLive() {
 function khLiveIn(a, e, end) {   // another phone's step: the table as it is now, with the card's move and the sounds
   if (!KG || !KG.st || !e.st) return;
   const p = khL(a); if (!end && (p === 0 || (KG.endNet && !KG.netFallback))) return;   // my own turn is played here
+  const oJ = new Map(); KG.st.table.forEach((m, mi) => m.cards.forEach(c => { if (c.j) oJ.set(c.id, mi); }));
   const o = KG.st, oDeck = o.deck.length, oDisc = o.disc.length, oTab = o.table.reduce((t, m) => t + m.cards.length, 0), oSh = o.shuffles || 0, oOpen = o.opened[p];
   khLoad(e.st); const st = KG.st, nTab = st.table.reduce((t, m) => t + m.cards.length, 0);
   if ((st.shuffles || 0) > oSh) khShuffleFx();
   else if (!end && st.deck.length < oDeck) { khFlyLater(khRectOf('.khdeck'), `.ava[data-kh="${p}"]`, null, 'seat', p); SFX.play('draw'); }
   if (!end && st.disc.length < oDisc && (st.shuffles || 0) === oSh) { const c = (KG.took[p] || []).slice(-1)[0]; khFlyLater(khRectOf('.khdisc'), `.ava[data-kh="${p}"]`, c || null, 'seat', c ? false : p); SFX.play('pickDiscard'); }
+  for (const [jid, mi] of oJ) if (st.hands[p] && st.hands[p].some(c => c.id === +jid)) { khFlyLater(khRectOf(`.khmeld[data-mi="${mi}"]`), `.ava[data-kh="${p}"]`, KG.cards[jid], 'seat'); SFX.play('pickDiscard'); khToast(`${KG.pl[p].name} بدّل الجوكر وأخذه 🃏`, 1600); }
   if (nTab > oTab) { SFX.play('land'); if (!oOpen && st.opened[p]) khToast(`${KG.pl[p].name} نزل ✋`, 1600); }
   if (!end) { if (KG.cur === p && KG.phase !== 'over') KG.phase = 'wait'; if (KG.vclock) KG.vclock.start = Date.now(); khRender(); }
 }
@@ -9045,7 +9083,7 @@ function khTapMeld(mi) {
   if (!st.opened[0]) return khToast('لازم تنزل أول شي حتى تمشّي على النزلات');
   if (!cs.length) return khToast('اختار ورقة من إيدك أول شي');
   const hand = st.hands[0];
-  if (cs.length === 1) { const sw = KH.jokerSwap(meld, cs[0]); if (sw) { meld.cards = sw.m.slots.map(x => x.c); meld.m = sw.m; hand.splice(hand.indexOf(cs[0]), 1); sw.joker.tk = true; delete sw.joker.as; hand.push(sw.joker); KG.sel = new Set(); khToast('بدّلت الجوكر وأخذته 🃏'); if (cs[0] === KG.mustUse) KG.mustUse = null; khRender(); return; } }
+  if (cs.length === 1) { const sw = KH.jokerSwap(meld, cs[0]); if (sw) { meld.cards = sw.m.slots.map(x => x.c); meld.m = sw.m; hand.splice(hand.indexOf(cs[0]), 1); sw.joker.tk = true; delete sw.joker.as; hand.push(sw.joker); khFlyLater(khRectOf(`.khmeld[data-mi="${mi}"]`), null, sw.joker, 'new'); SFX.play('pickDiscard'); KG.sel = new Set(); khToast('بدّلت الجوكر وأخذته 🃏'); if (cs[0] === KG.mustUse) KG.mustUse = null; khRender(); return; } }
   let m = KH.layoff(meld, cs);
   if (!m) return khToast('هاي الورقة ما تركب على هالنزلة');
   if (hand.length - cs.length < 1) return khToast('لازم تبقي ورقة حتى تشمرها وتقفل');
@@ -9073,12 +9111,17 @@ function khLayDone(meld, cs, m) {
   if (cs.includes(KG.mustUse)) KG.mustUse = null;
   SFX.play('land'); khClock(); khRender();   // adding to a set on the table starts the clock again
 }
+// 8.7.1 the rule: when the player after you has laid down, you may not throw him a card that goes on his groups
+// (unless every card you hold does, or it is the last card that closes the round)
+function khFeedsNext(st, p, c, n) { const q = (p + 1) % n; return !!st.opened[q] && st.table.some(m => m.owner === q && (KH.layoff(m, [c]) || KH.jokerSwap(m, c))); }
+function khDiscOk(st, p, c, n) { const hand = st.hands[p]; return hand.length <= 1 || !khFeedsNext(st, p, c, n) || hand.every(x => khFeedsNext(st, p, x, n)); }
 function khDiscard() {
   if (!khMine('play')) return;
   const cs = khSelCards();
   if (cs.length !== 1) return khToast('اختار ورقة وحدة حتى تشمرها');
   if (KG.mustUse && cs[0] !== KG.mustUse) return khToast('لازم تنزل بالورقة اللي أخذتها من الأرض، أو رجّعها ↩️');
   if (KG.staged.length) khUnstage();
+  if (!khDiscOk(KG.st, 0, cs[0], KG.n)) return khToast(`ما يصير تشمر هاي الورقة: تمشي على نزلات ${KG.pl[1 % KG.n].name} اللي بعدك`);
   khDoDiscard(0, cs[0]);
 }
 function khDoDiscard(p, c) {
@@ -9425,7 +9468,7 @@ async function khRoundOver(winner) {
   }, {dismiss: false});
 }
 // ---------- clock: every action of yours restarts it ----------
-function khClock() { khClockStop(); if (!KG || KG.mode === 'tutorial' || KG.cur !== 0) return; const id = KH_ID, dur = afkDur(KG.slow ? 20000 : 10000); KG.clock = {start: Date.now(), dur, t: setTimeout(() => { if (id === KH_ID && KG) { KG.clock = null; afkMiss('kh' + KG.turnTok, khLeave); if (KG) khAutoMine(); } }, dur)}; }
+function khClock() { khClockStop(); if (!KG || KG.mode === 'tutorial' || KG.cur !== 0) return; const id = KH_ID, dur = afkDur(40000); KG.clock = {start: Date.now(), dur, t: setTimeout(() => { if (id === KH_ID && KG) { KG.clock = null; afkMiss('kh' + KG.turnTok, khLeave); if (KG) khAutoMine(); } }, dur)}; }
 function khClockStop() { if (KG && KG.clock) { clearTimeout(KG.clock.t); KG.clock = null; } }
 (function khTick() {
   try {
@@ -9472,6 +9515,7 @@ function khRules(v0) {
     sec('النزول (الخبث!)', V.fixed ? [`كل نزلة أولى لازم مجموعها ${B} أو أكثر، ثابتة لكل اللاعبين (ما تحتاج تعبر نزلة غيرك).`, 'إذا تكدر تنزل كل أوراقك مجموعات وتبقى ورقة وحدة تشمرها، تنزلها وتقفل حتى لو مجموعك أقل من المطلوب، لأنك مخلّص مو نازل.']
       : [`أول نزلة باللعبة لازم مجموعها ${B} أو أكثر.`, 'كل واحد ينزل بعدها لازم يعبر أعلى نزلة قبله.', 'إذا تكدر تنزل كل أوراقك مجموعات وتبقى ورقة وحدة تشمرها، تنزلها وتقفل حتى لو مجموعك أقل من المطلوب، لأنك مخلّص مو نازل.', `بالزوجي: أول واحد ينزل من فريقك لازم يعبر نزلة الفريق الثاني، وشريكه بعده يحتاج ${B} بس.`]);
     s.lastElementChild.append(h('li', {}, 'بعد ما تنزل تكدر تنزل مجموعات بأي مجموع، وتمشّي أوراقك على نزلاتك ونزلات غيرك.'));
+    sec('قوانين إضافية', ['إذا اللي بعدك نازل، ما يصير تشمر ورقة تمشي على نزلاته (إلا إذا كل ورقك هيج، أو هي آخر ورقة تقفل بيها).', 'إذا إجت لأي لاعب 4 أزواج ورق متشابه بالتوزيع (8 ورقات، مثلاً 2 قلب مرتين و10 دنر مرتين…) تنعاد الجولة.']);
     if (V.konkan) {
       sec('شرط النزول بالكونكان', ['النزلة 71 أو أكثر، ثابتة لكل اللاعبين.', 'ولازم بالنزلة سرّة «نظيفة» وحدة على الأقل: 3 أوراق متتالية من نفس النقش بدون جوكر. بدونها ما تنزل حتى لو مجموعك فوك 71.', 'إذا أخذت الورقة اللي شمرها اللي قبلك وانت ما نازل، لازم تنزل بيها بنفس الدور.']);
       sec('الآص والجوكر', ['الآص 1 ببداية السرّة (آص-2-3)، و11 بآخرها (بنت-شايب-آص) وبالمجموعات وبالإيد.', 'الجوكر ينحسب بقيمة الورقة اللي يعوّضها، وبالإيد 25.']);
@@ -9674,7 +9718,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.7.0';
+const APP_VERSION = '8.7.1';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -11875,19 +11919,19 @@ function rewardEl() {
 // 2 turns played by the device → the device keeps playing for him without waiting, and a «رجوع» bar shows.
 // 3 more turns like that → the system takes him out of the game.
 const AFK = {n: 0, away: false, last: null, bar: null};
-function afkDur(ms) { return WATCH ? 900 : AFK.away ? 1200 : ms; }   // watching a tournament table: the device plays every seat
+const TURN_MS = 40000;   // 8.7.1 one time for every turn in every game: 40 s
+function afkDur(ms) { return WATCH ? 900 : AFK.away ? 1200 : TURN_MS; }   // watching a tournament table: the device plays every seat
 function afkReset() { AFK.n = 0; AFK.away = false; AFK.last = null; if (AFK.bar) { AFK.bar.remove(); AFK.bar = null; } }
 function afkMiss(key, leave) {
   if (window.__noAfk || WATCH || (ONLINE && ONLINE.parked)) return;
   if (key != null && key === AFK.last) return; AFK.last = key;
   AFK.n++;
-  if (AFK.n >= 5) { afkReset(); closeAll(); toast('طلعك النظام من اللعبة لأنك ما لعبت ⏱️', 3200); setTimeout(leave, 50); return; }
-  if (AFK.n >= 2 && !AFK.away) {
+  // 8.7.1 the time ran out: the device plays for him from now on, he is never put out; «رجوع» gives him the game back
+  if (!AFK.away) {
     AFK.away = true;
     AFK.bar = h('div', {class: 'afkbar'}, h('span', {}, '🤖 الجهاز ديلعب عنك'), h('button', {type: 'button', class: 'btn gobtn', onclick: () => afkReset()}, 'رجوع ↩'));
     document.body.append(AFK.bar);
   }
-  if (AFK.bar) AFK.bar.querySelector('span').textContent = `🤖 الجهاز ديلعب عنك · تطلع بعد ${5 - AFK.n} ${5 - AFK.n === 1 ? 'دور' : 'أدوار'}`;
 }
 // any touch on the table while the device is not playing for him counts as being here
 document.addEventListener('pointerdown', e => { if (!AFK.away && AFK.n && $('#splash').hidden && !e.target.closest('.afkbar')) AFK.n = 0; }, true);
@@ -13199,7 +13243,7 @@ function mgSeat(S, i, line, opts = {}) {
 let MG_CLK = null;
 function mgClockStart(S, onOut, ms) {
   mgClockStop(); if (S.mode === 'tutorial') return;
-  ms = ms || (S.slow ? 20000 : 12000);
+  ms = afkDur(40000);   // 8.7.1 40 s in every game (the device plays fast once it plays for him)
   const t0 = Date.now(), bar = h('div', {class: 'mgclk'}, h('i', {}));
   mgEl.append(bar);
   MG_CLK = {bar, iv: setInterval(() => {
@@ -13426,7 +13470,7 @@ class NetG {
   inbox(x) {   // the host checks what a phone sent and writes it in the log
     const i = this.order.indexOf(x.u); if (i < 0 || x.i !== i) return;
     if (x.t === 'e') { if (this.expect && this.expect.i === i) this.expect.seen = Date.now(); return this.append({t: 'e', i, e: x.e}); }   // 8.6.9 a friend who is still playing his turn is not «away»
-    if (x.t === 'a') { if (x.n < this.no) return; if (this.waiting && this.waiting.i === i && this.no === x.n) this.hostAct(i, x.n, x.a); else this.pend.push(x); }
+    if (x.t === 'a') { if (x.n < this.no) return; if (this.waiting && this.waiting.i === i && this.no === x.n) this.hostAct(i, x.n, x.a, x.b); else this.pend.push(x); }
   }
   hostAct(i, no, a, b) { if (this.sent[no] || no < this.no) return; this.sent[no] = 1; this.expect = null; this.append(Object.assign({t: 'a', i, a: a == null ? null : a}, b ? {b: 1} : {})); }
   pump() {   // what came in the log is applied in its order, and only while the game waits for a turn
@@ -13461,16 +13505,16 @@ function mgTurn(S, i, human, bot) {
 function mgTurn1(S, N, i, human, bot) {
   if (N.dead()) return new Promise(() => {});
   const no = N.no;
-  S.vclk = i === S.me ? null : {i, start: Date.now(), dur: S.awayMs ? Math.min(S.awayMs, 20000) : S.slow ? 20000 : 12000};   // 8.6.9 the others' frame on whoever plays
+  S.vclk = i === S.me ? null : {i, start: Date.now(), dur: 40000};   // 8.6.9 the others' frame on whoever plays
   const got = new Promise(res => { N.waiting = {i, res}; });
-  if (i === S.me) Promise.resolve().then(human).then(a => { if (!N.dead() && N.no === no) N.send({t: 'a', i, n: no, a: a == null ? null : a}); });
+  if (i === S.me) Promise.resolve().then(human).then(a => { if (!N.dead() && N.no === no) N.send(Object.assign({t: 'a', i, n: no, a: a == null ? null : a}, AFK.away ? {b: 1} : {})); });   // b: the device played it for me (I am away)
   else if (N.host) {
     const ex = {i, no, bot};
     if (!S.pl[i].remote) N.botFor(ex);
     else {
       N.expect = ex; const p = N.pend.findIndex(x => x.i === i && x.n === no);
       if (p >= 0) { const x = N.pend.splice(p, 1)[0]; N.hostAct(i, no, x.a); }
-      else { ex.t0 = Date.now(); const AW = S.awayMs || (S.slow ? 20000 : 12000) + 15000;   // a friend who is away (nothing from him for a while): the device plays for him
+      else { ex.t0 = Date.now(); const AW = 45000;   // 8.7.1 his own phone plays for him at 40 s; the host only for a phone that went quiet   // a friend who is away (nothing from him for a while): the device plays for him
         const chk = () => mgWait(S, 2000).then(() => { if (N.no !== no || N.sent[no]) return; if (Date.now() - Math.max(ex.t0, ex.seen || 0) > AW) { ex.away = true; N.botFor(ex); } else chk(); }); chk(); }
     }
     N.pend = N.pend.filter(x => x.n >= no);
@@ -14680,7 +14724,7 @@ const LD_SIDE = [
 const LD_SAFE = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
 MG.ludo = {name: 'لودو', players: o => o.mode === 'tutorial' ? 2 : o.mode === 'team' ? 4 : Math.min(4, Math.max(2, o.count || 2)), start: ldStart,
   rules: ['كل واحد عنده 4 قطع (بالسريعة 2) بالبيت مالته، ولازم يوصلهن كلهن للنص.', 'تطلّع قطعة من البيت بس من ترمي 6. من تطلعلك ستة ترمي مرة ثانية قبل ما تلعب، وبعدين تلعب كل الأرقام وحدة وحدة (وإذا طلعت ثلاث ستات ورا بعض يروح دورك).',
-    'تمشي القطعة بعدد الزار مع عقارب الساعة، ومن تكمل الدورة تدخل الممر مالها للنص، ولازم تدخل النص بالعدد الصحيح.', 'إذا وكفت على قطعة خصم ترجعها لبيته وترمي مرة ثانية. المربعات اللي بيها نجمة ومربعات البداية آمنة، ما ينكتل بيها أحد.',
+    'تمشي القطعة بعدد الزار مع عقارب الساعة، ومن تكمل الدورة تدخل الممر مالها للنص، ولازم تدخل النص بالعدد الصحيح.', 'اللعبة تكمل بعد ما يوصّل أول واحد: ينعرف الأول والثاني والثالث والرابع.', 'إذا وكفت على قطعة خصم ترجعها لبيته وترمي مرة ثانية. المربعات اللي بيها نجمة ومربعات البداية آمنة، ما ينكتل بيها أحد.',
     'بالزوجي: الألوان المتقابلة فريق، واللي يخلص قطعه يلعب بقطع شريكه.']};
 function ldSeats(n) { return n === 2 ? [0, 2] : n === 3 ? [0, 1, 2] : [0, 1, 2, 3]; }
 function ldStart(S) {
@@ -14727,26 +14771,31 @@ async function ldLoop(S) {
       }
       if (burn) { mgSay(p === S.me ? 'ثلاث ستات ورا بعض: راح دورك' : `ثلاث ستات لـ${S.pl[p].name}: راح دوره`); await mgWait(S, 1100); S.dice = []; S.cur = ldNext(S, p); continue; }
       let bonus = false;
-      while (dice.length && mgAlive(S) && !S.over) {
-        const d = dice[0]; S.die = d;
-        const mv = ldMoves(S, p, d); S.moves = mv;
-        if (!mv.length) { ldRender(S); await mgWait(S, 700); dice.shift(); S.dice = dice.slice(); continue; }
+      // 8.7.1 every die that is left can move any piece: tap a piece, and if more than one die fits it, pick the die over the piece
+      while (dice.length && mgAlive(S) && !S.over && !ldOut(S, p)) {
+        const vals = [...new Set(dice)], mv = [];
+        vals.forEach(d => ldMoves(S, p, d).forEach(m => mv.push(Object.assign(m, {d}))));
+        S.moves = mv; S.pickAt = null;
+        if (!mv.length) { ldRender(S); await mgWait(S, 800); break; }
         // the choice travels as the move's number in the list (the same list on every phone)
-        const k = await mgTurn(S, p, () => { S.phase = 'move'; ldRender(S); return new Promise(res => { S.wait = m => { S.wait = null; mgClockStop(); res(Math.max(0, mv.indexOf(m))); }; mgClockStart(S, () => S.wait && S.wait(ldBest(S, p, mv))); ldRender(S); }); },
+        const k = await mgTurn(S, p, () => { S.phase = 'move'; ldRender(S); return new Promise(res => { S.wait = m => { S.wait = null; S.pickAt = null; mgClockStop(); res(Math.max(0, mv.indexOf(m))); }; mgClockStart(S, () => S.wait && S.wait(ldBest(S, p, mv))); ldRender(S); }); },
           async () => { if (mv.length > 1) await mgWait(S, 450); return Math.max(0, mv.indexOf(ldBest(S, p, mv))); });
         const pick = mv[k] || mv[0];
         if (!mgAlive(S)) return;
-        S.phase = 'anim'; S.moves = []; dice.shift(); S.dice = dice.slice();
+        S.phase = 'anim'; S.moves = []; S.pickAt = null; dice.splice(dice.indexOf(pick.d), 1); S.dice = dice.slice(); S.die = pick.d;
         if (await ldMove(S, pick)) bonus = true;
         if (!mgAlive(S)) return;
         if (ldCheck(S)) return;
       }
       S.dice = [];
-      if (bonus) continue;   // a hit or a piece home: roll again
+      if (bonus && !ldOut(S, p)) continue;   // a hit or a piece home: roll again
       S.cur = ldNext(S, p);
     }
   } catch (e) { console.error('ludo', e); }
 }
+// 8.7.1 the game goes on after the first one is home: 1st, 2nd, 3rd… until one is left
+const ldOut = (S, p) => !S.team && (S.rank || []).includes(p);
+const LD_PLACE = ['الأول 🥇', 'الثاني 🥈', 'الثالث 🥉', 'الرابع'];
 function ldNext(S, p) { const n = S.pl.length; let q = p; for (let k = 0; k < n; k++) { q = (q + 1) % n; if (!ldDone(S, q) || (S.team && !ldDone(S, ldMate(S, q)))) return q; } return p; }
 async function ldMove(S, m) {
   const pc = S.pcs[m.o], from = pc[m.i];
@@ -14797,8 +14846,15 @@ function ldCheck(S) {
     for (const t of [[0, 2], [1, 3]]) if (t.every(p => ldDone(S, p))) { S.over = true; ldRender(S); setTimeout(() => mgEnd(S, t.includes(S.me), t.includes(S.me) ? 'فزتوا انت وشريكك 🏆' : 'فاز الفريق الثاني'), 700); return true; }
     return false;
   }
-  for (let p = 0; p < n; p++) if (ldDone(S, p)) { S.over = true; ldRender(S); setTimeout(() => mgEnd(S, p === S.me, p === S.me ? 'فزت 🏆 وصّلت كل قطعك' : `فاز ${S.pl[p].name}`), 700); return true; }
-  return false;
+  S.rank = S.rank || [];
+  for (let p = 0; p < n; p++) if (ldDone(S, p) && !S.rank.includes(p)) { S.rank.push(p); const pl = LD_PLACE[S.rank.length - 1];
+    mgSay(p === S.me ? `وصّلت كل قطعك: طلعت ${pl}` : `${S.pl[p].name} طلع ${pl}`); try { SFX.play('bearoff', .8); } catch (e) {} }
+  const left = S.pl.map((_, p) => p).filter(p => !S.rank.includes(p));
+  if (left.length > 1) return false;
+  S.rank.push(...left); S.over = true; ldRender(S);
+  const r = S.rank, me = r.indexOf(S.me);
+  setTimeout(() => mgEnd(S, me === 0, me === 0 ? 'فزت 🏆 طلعت الأول' : `طلعت ${LD_PLACE[me]} · فاز ${S.pl[r[0]].name}`, r.map((p, k) => `${LD_PLACE[k]}: ${p === S.me ? 'انت' : S.pl[p].name}`)), 700);
+  return true;
 }
 // where a piece stands, in board cells (row, col): the base spots, the track, the lane, the middle
 function ldCell(S, p, i, x) {
@@ -14843,26 +14899,32 @@ function ldRender(S) {
   for (const key in at) { const arr = at[key].sort((a, b) => (mineSide(a.p) ? 1 : 0) - (mineSide(b.p) ? 1 : 0) || (mv.some(z => z.o === a.p && z.i === a.i) ? 1 : 0) - (mv.some(z => z.o === b.p && z.i === b.i) ? 1 : 0));
     const stack = arr.length > 1 && key[0] !== 'b';
     arr.forEach((t, k) => {
-    const m = mv.find(z => z.o === t.p && z.i === t.i), top = k === arr.length - 1;
+    const m = mv.find(z => z.o === t.p && z.i === t.i), top = k === arr.length - 1 || (S.pickAt && S.pickAt.o === t.p && S.pickAt.i === t.i);
     const sz = t.x === 56 ? .5 : t.x === -1 ? 1.05 : .86, U = v => (v + .3) / 15.6 * 100;   // the board's picture runs from -.3 to 15.3
     const lift = stack ? k * .06 : 0, pos = `left:${U(t.c + .5 - sz / 2)}%;top:${U(t.r + .5 - lift - sz / 2)}%;width:${sz / 15.6 * 100}%;height:${sz / 15.6 * 100}%;`;
     if (stack && top) { const cols = [...new Set(arr.slice(0, -1).map(x => LD_SIDE[S.side[x.p]].hex))];
       board.append(h('i', {class: 'ldring', style: pos + `box-shadow:${cols.map((c, j) => `0 0 0 ${2 + j * 2.5}px ${c}`).join(',')}`})); }
     board.append(h('button', {type: 'button', 'data-k': t.p + ':' + t.i, class: 'ldpc' + (m ? ' go' : '') + (t.x === 56 ? ' home' : ''), disabled: !m, 'aria-label': `قطعة ${LD_SIDE[S.side[t.p]].name}`,
       style: pos + `z-index:${2 + k};${lpcCss(LD_SIDE[S.side[t.p]].col)}`,
-      onclick: () => m && S.wait && S.wait(m)}, stack && top ? h('b', {class: 'ldn'}, String(arr.length)) : ''));
+      onclick: () => { if (!m || !S.wait) return; const opts = mv.filter(z => z.o === t.p && z.i === t.i); if (opts.length === 1) return S.wait(opts[0]); S.pickAt = {o: t.p, i: t.i}; ldRender(S); }}, stack && top ? h('b', {class: 'ldn'}, String(arr.length)) : ''));
+    if (S.pickAt && S.pickAt.o === t.p && S.pickAt.i === t.i && top) board.append(h('div', {class: 'ldpick', style: `left:${U(t.c + .5)}%;top:${U(t.r - lift)}%`},
+      ...mv.filter(z => z.o === t.p && z.i === t.i).map(z => h('button', {type: 'button', 'aria-label': `العب ${z.d}`, onclick: e => { e.stopPropagation(); S.wait && S.wait(z); }}, String(z.d)))));
     }); }
-  const seat = p => { const sd = LD_SIDE[S.side[p]], home = S.pcs[p].filter(x => x === 56).length;
-    return mgSeat(S, p, `${sd.name} · ${home}/${S.np}`, {on: S.cur === p && !S.over, cls: 'ldseat ld-' + sd.col}); };
-  const die = h('button', {type: 'button', class: 'mgdie' + (S.rolling ? ' roll' : '') + (myTurn && S.phase === 'roll' && S.wait ? ' go' : ''), disabled: !(myTurn && S.phase === 'roll' && S.wait), 'aria-label': 'ارمي الزار', onclick: () => S.wait && S.wait()}, mgDieFace(S.die));
-  const info = S.over ? '' : myTurn ? (S.phase === 'roll' ? 'دورك: اضغط الزار' : S.phase === 'move' ? 'اختار القطعة اللي تمشي' : '') : `دور ${S.pl[S.cur].name}`;
+  S.last = S.last || {}; if (S.die && S.cur != null) S.last[S.cur] = S.die;
+  const seat = p => { const sd = LD_SIDE[S.side[p]], home = S.pcs[p].filter(x => x === 56).length, cur = S.cur === p && !S.over, mine = cur && p === S.me && S.phase === 'roll' && S.wait;
+    const rk = (S.rank || []).indexOf(p);
+    const die = h('button', {type: 'button', class: 'mgdie lddie' + (cur ? ' on' : '') + (cur && S.rolling ? ' roll' : '') + (mine ? ' go' : ''), disabled: !mine, 'aria-label': p === S.me ? 'ارمي الزار' : `زار ${S.pl[p].name}`, onclick: () => S.wait && S.wait()}, mgDieFace(cur ? S.die || S.last[p] : S.last[p]));
+    const q = cur && (S.dice || []).length && S.phase !== 'roll' ? h('span', {class: 'lddq'}, ...S.dice.map(v => mgDieFace(v))) : cur && (S.dice || []).length > 0 && S.phase === 'roll' ? h('span', {class: 'lddq'}, ...S.dice.map(v => mgDieFace(v))) : '';
+    const right = [2, 3].includes(S.side[p]);
+    return h('div', {class: 'ldsw' + (right ? ' r' : '')}, mgSeat(S, p, rk >= 0 ? `${LD_PLACE[rk]}` : `${sd.name} · ${home}/${S.np}`, {on: cur, cls: 'ldseat ld-' + sd.col}), h('div', {class: 'lddw'}, die, q)); };
+  const info = S.over ? '' : myTurn ? (S.phase === 'roll' ? 'دورك: اضغط الزار مالك' : S.phase === 'move' ? ((S.dice || []).length > 1 ? 'اختار القطعة، وإذا يمشيها أكثر من زار اختار الزار' : 'اختار القطعة اللي تمشي') : '') : `دور ${S.pl[S.cur].name}`;
   const L = S.pl.map((_, p) => p);
   mgEl.innerHTML = '';
   mgEl.append(mgTop(S, 'لودو', S.team ? h('small', {class: 'mgtag'}, 'زوجي') : ''),
     h('div', {class: 'ldrow', dir: 'ltr'}, ...L.filter(p => [1, 2].includes(S.side[p])).sort((a, b) => S.side[a] - S.side[b]).map(seat)),
     board,
     h('div', {class: 'ldrow', dir: 'ltr'}, ...L.filter(p => [0, 3].includes(S.side[p])).sort((a, b) => S.side[a] - S.side[b]).map(seat)),
-    h('div', {class: 'mgdiebar'}, die, (S.dice || []).length > 1 || ((S.dice || []).length === 1 && S.phase !== 'roll') ? h('span', {class: 'lddq'}, ...(S.dice || []).map(v => mgDieFace(v))) : '', h('b', {class: 'unoinfo'}, info)));
+    h('div', {class: 'mgdiebar ldinfo'}, h('b', {class: 'unoinfo'}, info)));
   if (MG_CLK) mgEl.append(MG_CLK.bar);
 }
 // a die face drawn with dots
@@ -15109,17 +15171,23 @@ function solTap(S, from, idx) {
     const ok = cols.filter(k => !(c.r === 13 && !S.tab[k].length && from !== 'w' && idx === 0));
     to = ok.find(k => S.tab[k].length) ?? ok[0] ?? null; }
   if (to === null) { try { SFX.play('no', .4); } catch (e) {} const el = mgEl.querySelector(`[data-sol="${from}:${idx}"]`); if (el) { el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 350); } return; }
+  solSave(S);
   if (from === 'w') S.waste.pop(); else S.tab[from].splice(idx);
   if (to === 'f') S.found[c.s].push(c); else S.tab[to].push(...run);
   if (from !== 'w') { const t = S.tab[from]; if (t.length && !t[t.length - 1].up) t[t.length - 1].up = true; }
   S.moves++; S.hint = null; try { SFX.play(to === 'f' ? 'bank' : 'cardplay', .45); } catch (e) {}
   solAfter(S);
 }
+// 8.7.1 one step back: the table as it was before the last move (or draw)
+const solSnap = S => JSON.stringify({tab: S.tab, stock: S.stock, waste: S.waste, found: S.found, moves: S.moves});
+function solSave(S) { (S.undo = S.undo || []).push(solSnap(S)); if (S.undo.length > 60) S.undo.shift(); }
+function solUndo(S) { if (S.over || S.auto || !(S.undo || []).length) return; Object.assign(S, JSON.parse(S.undo.pop())); S.hint = null; try { SFX.play('chk', .5); } catch (e) {} solRender(S); }
 function solMoveTo(S, from, idx, to) {   // to: 'f' or a column number
   if (S.over) return false;
   let run; if (from === 'w') { if (!S.waste.length) return false; run = [S.waste[S.waste.length - 1]]; } else { const t = S.tab[from]; if (!t[idx] || !t[idx].up) return false; run = t.slice(idx); }
   const c = run[0];
   if (to === 'f' ? !(run.length === 1 && solCanFound(S, c)) : (to === from || !solCanTab(S, c, to))) return false;
+  solSave(S);
   if (from === 'w') S.waste.pop(); else S.tab[from].splice(idx);
   if (to === 'f') S.found[c.s].push(c); else S.tab[to].push(...run);
   if (from !== 'w') { const t = S.tab[from]; if (t.length && !t[t.length - 1].up) t[t.length - 1].up = true; }
@@ -15151,6 +15219,7 @@ function solDrag(S, e, from, idx) {
 }
 function solStock(S) {
   if (S.over) return;
+  if (S.stock.length || S.waste.length) solSave(S);
   if (!S.stock.length) { if (!S.waste.length) return; S.stock = S.waste.reverse().map(c => c); S.waste = []; }
   else for (let k = 0; k < S.draw && S.stock.length; k++) { const c = S.stock.pop(); c.up = true; S.waste.push(c); }   // 8.6.8 a card from the pile is open (it stayed closed when it went to a column)
   S.hint = null; try { SFX.play('draw', .4); } catch (e) {} solRender(S);
@@ -15193,7 +15262,7 @@ function solRender(S) {
   mgEl.innerHTML = '';
   mgEl.append(mgTop(S, 'سوليتير', h('small', {class: 'soltime'}, S.limit ? '' : 'بلا وقت')),
     h('div', {class: 'soltop', dir: 'ltr'}, stock, waste, h('i', {class: 'solgap'}), fnd), cols,
-    h('div', {class: 'unobtns'}, h('button', {type: 'button', class: 'btn', onclick: () => solHint(S)}, '💡 تلميح'), h('small', {class: 'mgln'}, `${solDone(S)}/52 · ${S.draw === 3 ? 'سحب 3' : 'سحب 1'}`)));
+    h('div', {class: 'unobtns'}, h('button', {type: 'button', class: 'btn', disabled: !(S.undo || []).length || S.over, onclick: () => solUndo(S)}, '↩ رجوع خطوة'), h('button', {type: 'button', class: 'btn', onclick: () => solHint(S)}, '💡 تلميح'), h('small', {class: 'mgln'}, `${solDone(S)}/52 · ${S.draw === 3 ? 'سحب 3' : 'سحب 1'}`)));
   solTime(S);
 }
 // for the self-test: one move of a simple player (the hint's move, or the stock)
@@ -15625,7 +15694,7 @@ function mfSys(S, t) { S.log.push({t}); mfRender(S); }
 function mfPick(S, ask, ok, ms) {
   S.ask = ask; S.can = ok; mfRender(S);
   return new Promise(res => { S.wait = x => { S.wait = null; S.ask = null; S.can = null; mgClockStop(); res(x); };
-    mgClockStart(S, () => S.wait && S.wait(null), ms || (S.slow ? 30000 : 20000)); mfRender(S); });
+    mgClockStart(S, () => S.wait && S.wait(null), 40000); mfRender(S); });
 }
 async function mfLoop(S) {
   try {
@@ -15688,7 +15757,7 @@ async function mfTalk(S) {
   const bots = mfLive(S).filter(i => i !== S.me && (!S.pl[i].friend || S.pl[i].left));
   // the end of the talk is the host's turn (seat 0): his «خلص النقاش», the clock, or every real player done
   const end = () => new Promise(res => { S.talkEnd = () => { S.talkEnd = null; mgClockStop(); res(1); }; S.talkDone = () => { const H = mfLive(S).filter(i => i === S.me || S.pl[i].friend && !S.pl[i].left); if (H.every(i => S.done[i]) && S.talkEnd) S.talkEnd(); };
-    mgClockStart(S, () => S.talkEnd && S.talkEnd(), S.slow ? 40000 : 25000); mfRender(S); });
+    mgClockStart(S, () => S.talkEnd && S.talkEnd(), 40000); mfRender(S); });
   if (S.net && !S.net.host) S.talkEnd = () => { mgEv(S, {k: 'done'}, () => {}); S.talkEnd = null; mfRender(S); };   // a friend's «خلص النقاش» tells the host
   if (boss) (async () => { for (const i of mgShuffle(bots.slice())) { if (!mgAlive(S) || S.phase !== 'talk') return; await mgWait(S, 900 + Math.random() * 900); if (S.phase !== 'talk' || !S.alive[i]) return; const t = mfBotLine(S, i); if (t) { if (S.net) S.net.append({t: 'e', i, e: {k: 'say', t}}); else mfSay(S, i, t); } }
     await mgWait(S, 1200); if (S.phase === 'talk' && S.talkDone) S.talkDone(); })();   // 8.6.8 no living real player left to talk (I am dead): the talk ends with the device's lines
