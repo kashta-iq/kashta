@@ -8809,7 +8809,7 @@ function launchKhabitha(opt) { afkReset(); haltOthers('khabitha');
   if (opt.net) {   // 8.5 with friends: my seat at the bottom, the others turn with me; every turn ends by sending the whole table
     const N = opt.net, id = KH_ID, seats = N.room.seats || {}, r = netRng(N.seed ^ 0x51a7), bn = mgShuffle(BOT_NAMES.slice().sort(), r).filter(x => !N.order.some(u => seats[u] && seats[u].n === x));
     const A = Array.from({length: n}, (_, a) => { const u = N.order[a], x = u && seats[u]; return x ? {name: x.n, av: x.av, friend: true, remote: u !== N.R.uid, human: u === N.R.uid, uid: u} : {name: bn[a], av: botAv(bn[a], a + 1), human: false}; });
-    TS = {net: N, me: N.me, pl: A, slow: false, awayMs: 45000, aliveFn: () => !!KG && KG.ts === TS && id === KH_ID, sayAt: (a, i) => khSay((a - N.me + n) % n, i), say: t => toast(t, 2000), onEv: (a, e) => e && e.k === 'khp' && khLiveIn(a, e)};
+    TS = {net: N, me: N.me, pl: A, slow: false, awayMs: 45000, aliveFn: () => !!KG && KG.ts === TS, sayAt: (a, i) => khSay((a - N.me + n) % n, i), say: t => toast(t, 2000), onEv: (a, e) => e && e.k === 'khp' && khLiveIn(a, e)};
     for (let j = 1; j < n; j++) { const x = A[(j + N.me) % n]; pl.push({name: x.name + (opt.mode === 'team' && j === 2 ? ' 🤝' : ''), av: x.av, human: false, friend: !!x.friend, uid: x.uid}); }
   } else
   for (let i = 1; i < n; i++) pl.push({name: names[i - 1] + (opt.mode === 'team' && i === 2 ? ' 🤝' : ''), av: botAv(names[i - 1], i), human: false});
@@ -9003,6 +9003,8 @@ setInterval(() => {
   if (KG.ts && (!KG.ts.net.host || KG.ts.pl[khA(KG.cur)].remote || KG.netFallback)) return;   // online: a friend's turn is his
   if (KG.botRun && Date.now() - KG.turnAt < 40000) return;   // a bot is still thinking: never start a second one
   if (Date.now() - KG.turnAt < 15000) return;
+  // 8.7.7 online the game itself is never restarted here (that cut the host off the room and froze everyone): only a bot that is not running is started again
+  if (KG.ts) { if (KG.botRun) return; KG.turnAt = Date.now(); khBot(KG.cur, KH_ID).catch(() => {}); return; }
   KG.turnAt = Date.now(); KH_ID++; const id = KH_ID;
   khBot(KG.cur, id).catch(() => {});
 }, 3000);
@@ -9745,7 +9747,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.7.6';
+const APP_VERSION = '8.7.7';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
