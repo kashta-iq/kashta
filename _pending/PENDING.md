@@ -1,5 +1,7 @@
 # كشتة: شغل محفوظ ينتظر أمر كاظم (لا ينزل قبل ما يكول)
 
+**When he says «عدل»: FIRST check every asset and everything listed here (alignment, cut quality, missing pieces). If anything is missing or unusable, ASK HIM for it before building. Only then apply all edits together in one release.**
+
 Branch `pending` = main + everything below. Merge into main only when he says "عدل".
 
 ## 1. أحجار لودو جديدة (مسواة بالكود، commits on this branch)
