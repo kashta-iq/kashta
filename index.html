@@ -6698,7 +6698,19 @@ const LPC = {   // the round pieces of لودو and حية ودرج: one look, e
   gold: {name: 'ذهب العروس', price: 1500, bg: c => `radial-gradient(circle at 35% 30%,rgba(255,255,255,.7) 0 6%,transparent 20%),radial-gradient(circle,${c} 0 52%,#ffe08a 55%,#b8862a 70%,#fff3b0 78%,#8a5a07 100%)`, rim: '#8a5a07'},
   gem: {name: 'جواهر الملوك', price: 2500, bg: c => `conic-gradient(from 20deg,${c},color-mix(in srgb,${c} 45%,#fff),${c},color-mix(in srgb,${c} 60%,#000),${c},color-mix(in srgb,${c} 45%,#fff),${c})`, rim: '#e8c47a'},
   neon: {name: 'نيون دجلة', price: 3000, bg: c => `radial-gradient(circle,#111 0 46%,${c} 50% 62%,#111 66%)`, rim: '#000', glow: true},
+  // 8.8 drawn pieces: cards/lp/<img>_<r|g|y|b>.webp
+  smile: {name: 'الوجوه الضاحكة', price: 1200, img: 'smile'},
+  zakh: {name: 'زخارف بغدادية', price: 2000, img: 'zakh'},
+  crown: {name: 'تاج الملوك', price: 2000, img: 'crown'},
+  yaqut: {name: 'ياقوت وزمرد', price: 2500, img: 'yaqut'},
+  neonx: {name: 'نيون المستقبل', price: 2500, img: 'neonx'},
+  micro: {name: 'عالم المجهر', price: 2500, img: 'micro'},
+  elem: {name: 'العناصر الأربعة', price: 3000, img: 'elem'},
+  orrery: {name: 'ساعة الكواكب', price: 3000, img: 'orrery'},
+  scarab: {name: 'جعران الذهب', price: 3500, img: 'scarab'},
+  cosmos: {name: 'مجرات الكون', price: 3500, img: 'cosmos'},
 };
+const lpImg = (s, c) => s.img ? `background-image:url("cards/lp/${s.img}_${c}.webp")` : `background-image:url("${ngI('ludo_' + c)}")`;
 const UNOB = {   // the back of the أونو cards
   classic: {name: 'ظهر كشتة', price: 0},
   fire: {name: 'نار الرحمة', price: 1200, bg: 'radial-gradient(ellipse 60% 45% at 50% 60%,#ffd54a,#ff7a1a 45%,#c3141f 75%,#3a0408)'},
@@ -6749,11 +6761,11 @@ const ngI = k => (window.NGIMG && NGIMG[k]) || '';
 // a piece of لودو / حية ودرج in the look I wear (c: its colour key r g y b)
 const LD_HEX = {r: '#c8202a', g: '#1f9a4a', y: '#e2a419', b: '#1d46a8'};
 function lpcCss(c) { const s = LPC[(typeof PROFILE !== 'undefined' && PROFILE.eq && PROFILE.eq.lpc) || 'classic'] || LPC.classic;
-  if (!s.bg) return `background-image:url("${ngI('ludo_' + c)}")`;
+  if (!s.bg) return lpImg(s, c);
   return `background:${s.bg(LD_HEX[c])};box-shadow:inset 0 0 0 2px ${s.rim},0 2px 3px rgba(0,0,0,.5)${s.glow ? `,0 0 8px ${LD_HEX[c]}` : ''}`; }
 function unobCss() { const s = UNOB[(PROFILE.eq && PROFILE.eq.unob) || 'classic'] || UNOB.classic; return s.bg ? `background:${s.bg}` : `background-image:url("${ngI(typeof MGS !== 'undefined' && MGS && MGS.nm ? 'uc_back_m' : 'uc_back_n')}")`; }
 const MGK_PREV = {
-  lpc: k => { const s = LPC[k]; return h('div', {class: 'mgkp lpcp'}, ...'rgyb'.split('').map(c => h('i', {style: s.bg ? `background:${s.bg(LD_HEX[c])};box-shadow:inset 0 0 0 2px ${s.rim}${s.glow ? `,0 0 8px ${LD_HEX[c]}` : ''}` : `background-image:url("${ngI('ludo_' + c)}")`}))); },
+  lpc: k => { const s = LPC[k]; return h('div', {class: 'mgkp lpcp'}, ...'rgyb'.split('').map(c => h('i', {style: s.bg ? `background:${s.bg(LD_HEX[c])};box-shadow:inset 0 0 0 2px ${s.rim}${s.glow ? `,0 0 8px ${LD_HEX[c]}` : ''}` : lpImg(s, c)}))); },
   unob: k => h('div', {class: 'mgkp unobp', style: UNOB[k].bg ? `background:${UNOB[k].bg}` : `background-image:url("${ngI('uc_back_n')}")`}),
   mgtbl: k => h('div', {class: 'mgkp tblp', style: MGTBL[k].bg ? `background:${MGTBL[k].bg}` : `background-image:url("${ngI('uno_table')}")`}),
   pool: k => h('div', {class: 'mgkp poolp', style: `background:${POOL[k].c || '#1f7a4a'}`}, h('i', {})),
