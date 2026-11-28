@@ -6710,7 +6710,7 @@ const LPC = {   // the round pieces of لودو and حية ودرج: one look, e
   scarab: {name: 'جعران الذهب', price: 3500, img: 'scarab'},
   cosmos: {name: 'مجرات الكون', price: 3500, img: 'cosmos'},
 };
-const lpImg = (s, c) => s.img ? `background-image:url("cards/lp/${s.img}_${c}.webp")` : `background-image:url("${ngI('ludo_' + c)}")`;
+const lpImg = (s, c) => s.img ? `background-image:url("${ngI('lp_' + s.img + '_' + c) || `cards/lp/${s.img}_${c}.webp`}")` : `background-image:url("${ngI('ludo_' + c)}")`;
 const UNOB = {   // the back of the أونو cards
   classic: {name: 'ظهر كشتة', price: 0},
   fire: {name: 'نار الرحمة', price: 1200, bg: 'radial-gradient(ellipse 60% 45% at 50% 60%,#ffd54a,#ff7a1a 45%,#c3141f 75%,#3a0408)'},
