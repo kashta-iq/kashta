@@ -4814,7 +4814,7 @@ function render() {
 
 const SFX = (() => {
   // Recorded-style effects rendered offline (sfx/*.mp3), decoded once and played through Web Audio.
-  const NAMES = ["click", "gift", "allGiveLand", "bank", "bankToHand", "birthday2", "block", "blockDraw", "burnBank", "burnLand", "buyLand", "cardplay", "cheque", "copyAction", "coverAll", "dealBreaker", "debt3", "debt5", "double", "draw", "draw2", "end", "extraTurn", "guard", "hotel", "joker", "house", "land", "lose", "mall", "myturn", "no", "no2", "noRent", "oneMove", "pay", "payLandValue", "pickDiscard", "plus2moves", "redraw", "rent", "reveal", "reverse", "shield2", "shuffle", "skip", "slyDeal", "stealAnyLand", "stealRandom", "swapHands", "swapLand", "takeJoker", "turn", "unblock", "win", "dice", "chk", "hitchk", "bearoff", "tile", "shufdom", "tile2", "slam", "charged", "kaad", "malas", "deal", "tick", ...Array.from({length: 41}, (_, i) => "stk" + i), "stk87", "stk88", "stk89", "stk90", "stk91", "stk92", "stk93", "lstep", "unocall", "tayfly", ...Array.from({length: 8}, (_, i) => "stk" + (94 + i))];
+  const NAMES = ["click", "gift", "allGiveLand", "bank", "bankToHand", "birthday2", "block", "blockDraw", "burnBank", "burnLand", "buyLand", "cardplay", "cheque", "copyAction", "coverAll", "dealBreaker", "debt3", "debt5", "double", "draw", "draw2", "end", "extraTurn", "guard", "hotel", "joker", "house", "land", "lose", "mall", "myturn", "no", "no2", "noRent", "oneMove", "pay", "payLandValue", "pickDiscard", "plus2moves", "redraw", "rent", "reveal", "reverse", "shield2", "shuffle", "skip", "slyDeal", "stealAnyLand", "stealRandom", "swapHands", "swapLand", "takeJoker", "turn", "unblock", "win", "dice", "chk", "hitchk", "bearoff", "tile", "shufdom", "tile2", "slam", "charged", "kaad", "malas", "deal", "tick", ...Array.from({length: 41}, (_, i) => "stk" + i), "stk87", "stk88", "stk89", "stk90", "stk91", "stk92", "stk93", "lstep", "unocall", "tayfly", ...Array.from({length: 8}, (_, i) => "stk" + (94 + i)), ...Array.from({length: 13}, (_, i) => "stk" + (102 + i))];
   const ACTION = new Set(NAMES.filter(n => !n.startsWith('stk') && !['click','gift','dice','tile2','slam','charged','kaad','malas','deal','tick','chk','hitchk','bearoff','tile','shufdom','draw','draw2','land','bank','pay','shuffle','turn','myturn','end','block','cardplay','win','lose'].includes(n)));
   let ctx = null, master = null, bufs = {}, loading = null, lastAction = null, lastStk = null;
   // three switches (إعدادات الصوت): the button taps, the game sounds, the sticker voices; all on by default
@@ -6015,7 +6015,7 @@ const STICKERS = [
   {t: 'صدمة', img: 'shock', p: 'kashta'},
   {t: 'إيماءة سريعة', img: 'thumb', p: 'kashta'},
   {t: 'ضحك هستيري', img: 'lol', png: 1, p: 'kashta'},
-  {t: 'نظرة شك', img: 'doubt', p: 'kashta'},
+  {t: 'نظرة شك', img: 'doubt', p: 'kashta', v: 1},
   {t: 'بطاقة برّاق', img: 'card', p: 'kashta', gone: 1},
   // voice stickers (recorded voices)
   {t: 'هيج احسلك', f: 'laugh', c: ['#ffe9b0', '#ffb347', '#d96b00'], p: 'kashta', v: 1},
@@ -6102,6 +6102,20 @@ const STICKERS = [
   {t: 'كشتات!', anim: 'ga6', p: 'kashta', v: 1},
   {t: 'يلا عاد!', anim: 'ga7', p: 'kashta', v: 1},
   {t: 'هاي شلون؟!', anim: 'ga8', p: 'kashta', v: 1},
+  // 8.7.8 the friends' voices: 102–103 pictures, 104–114 moving stickers (each with its own voice)
+  {t: 'انلاصت', img: 'enlast', p: 'kashta', v: 1},
+  {t: 'حكم اليوم براسك', img: 'hakam', png: 1, p: 'kashta', v: 1},
+  {t: 'خطرتلي', anim: 'ks1', p: 'kashta', v: 1},
+  {t: 'هلا بيك', anim: 'ks2', p: 'kashta', v: 1},
+  {t: 'شنو هذا!', anim: 'ks3', p: 'kashta', v: 1},
+  {t: 'ههههه', anim: 'ks4', p: 'kashta', v: 1},
+  {t: 'طز', anim: 'ks5', p: 'kashta', v: 1},
+  {t: 'ششش', anim: 'ks6', p: 'kashta', v: 1},
+  {t: 'عندي خطة', anim: 'ks7', p: 'kashta', v: 1},
+  {t: 'هاهاها', anim: 'ks8', p: 'kashta', v: 1},
+  {t: 'همم', anim: 'ks9', p: 'kashta', v: 1},
+  {t: 'خوفتني', anim: 'ks10', p: 'kashta', v: 1},
+  {t: 'يا ويلي', anim: 'ks11', p: 'kashta', v: 1},
 ];
 // 7.9: these picture stickers are out of the normal app (they stay in the owner's build)
 const STK_OWNER_ONLY = new Set(['idea', 'gamer', 'conf_f', 'chess', 'champ', 'tired_f', 'strong_f', 'coffee', 'strong_m', 'conf_m', 'tired_m', 'team', 'ok', 'cert']);
@@ -6899,17 +6913,30 @@ function launchTawla(opt) { afkReset(); haltOthers('tawla'); twBusy = false; twA
 const twMir = m => ({from: m.from === 'bar' ? 'bar' : 23 - m.from, to: m.to === 'off' ? 'off' : 23 - m.to, d: m.d, hit: !!m.hit});
 const twAbs = m => TG.ts.me === 0 ? {from: m.from, to: m.to, d: m.d, hit: !!m.hit} : twMir(m);   // mine, written on the shared board
 const twLoc = m => TG.ts.me === 0 ? m : twMir(m);   // the shared board's move, on mine
+// 8.7.8 the whole board in every record (the shared board's side): what the log says is the board on every phone
+const twMirS = s => { const b = new Array(24); for (let i = 0; i < 24; i++) b[23 - i] = -s.b[i]; return {b, bar: [s.bar[1], s.bar[0]], off: [s.off[1], s.off[0]], hp: null}; };
+const twRecKey = r => JSON.stringify([r.dice || null, (r.moves || []).map(m => [m.from, m.to, m.d]), r.offer || null]);
+const twAbsS = s => TG.ts.me === 0 ? TWE.clone(s) : twMirS(s);
+const twLocS = s => !s || !s.b ? null : TG.ts.me === 0 ? {b: s.b.slice(), bar: s.bar.slice(), off: s.off.slice(), hp: null} : twMirS(s);
 // my turn online: everything I do goes out as one record when the turn ends
 function twNetMine() {
   const TS = TG.ts; if (!TS) return; const tk = TG.turnTok, id = TW_ID;
   mgTurn(TS, TS.me, () => new Promise(res => { TG.sendTurn = a => { TG.sendTurn = null; res(a); }; }), async () => null).then(async a => {
     // 8.7.1 the host played my turn (my phone went quiet): his dice and moves are the game, mine are dropped
+    if (TG && id === TW_ID && !TG.sendTurn && a && a.dice && TG.sentRec && twRecKey(a) !== TG.sentRec && a.st) {
+      // my record lost the race (the host had already played my turn): the log's board is the board
+      __tr('lostRace'); TG.sentRec = null; TG.s = twLocS(a.st); TG.live = null; toast('تأخرت، فلعب الجهاز دورك 🤖', 2500); twRender(); return;
+    }
     if (!TG || id !== TW_ID || TG.turnTok !== tk || TG.cur !== 0 || !TG.sendTurn) return;
-    TG.sendTurn = null; twClockStop(); toast('تأخرت، فلعب الجهاز دورك 🤖', 2500);
+    __tr('adopt', {k: a && Object.keys(a).join(',')}); TG.sendTurn = null; twClockStop(); toast('تأخرت، فلعب الجهاز دورك 🤖', 2500);
+    // 8.7.8 my own turn here stops at once (a move or "end turn" of mine still on its way must not start a second turn)
+    TG.turnTok++; const tk2 = TG.turnTok; TG.phase = 'anim'; TG.sel = null;
     if (a && a.dice) {
       if (TG.turnStart && TG.made.length) TG.s = TWE.clone(TG.turnStart);
-      const d = a.dice; TG.dice = d; TG.turnDice = d; TG.rem = TWE.diceList(d[0], d[1]); TG.made = []; TG.undo = []; TG.sel = null; TG.phase = 'move'; twRender();
-      for (const m of a.moves || []) { if (!TG || TG.turnTok !== tk) return; twDo(twLoc(m)); twRender(); await twDelay(420, id); }
+      const d = a.dice; TG.dice = d; TG.turnDice = d; TG.rem = TWE.diceList(d[0], d[1]); TG.made = []; TG.undo = []; TG.sel = null; TG.phase = 'blocked'; twRender();
+      for (const m of a.moves || []) { if (!TG || TG.turnTok !== tk2) return; twDo(twLoc(m)); twRender(); await twDelay(420, id); }
+      if (!TG || TG.turnTok !== tk2) return;
+      if (a.st) TG.s = twLocS(a.st);
       if (TWE.won(TG.s, 0)) return twGameOver(0);
     }
     TG.cur = 1; TG.phase = 'roll'; twStartTurn();
@@ -6933,13 +6960,13 @@ function twLiveIn(e) {
   const d = T.dice; TG.s = TWE.clone(T.base); TG.rem = TWE.diceList(d[0], d[1]); TG.made = []; TG.undo = []; T.moves = [];
   for (const m of nm) { twDo(twLoc(m)); T.moves.push(m); } TG.flight = null; twRender();
 }
-function twNetSend(extra) { if (TG && TG.sendTurn) TG.sendTurn(Object.assign({dice: TG.turnDice, moves: TG.made.map(twAbs)}, extra || {})); }
+function twNetSend(extra) { if (TG && TG.sendTurn) { const r = Object.assign({dice: TG.turnDice, moves: TG.made.map(twAbs)}, extra || {}); TG.sentRec = twRecKey(r); TG.sendTurn(Object.assign(r, {st: twAbsS(TG.s)})); } }
 // the friend's turn: his record comes, his dice show and his checkers move
 async function twNetTheirs() {
   const TS = TG.ts, id = TW_ID, tk = TG.turnTok;
   TG.vclock = {start: Date.now(), dur: 40000};
   for (;;) {
-    const a = await mgTurn(TS, TS.op, () => null, async () => { const d = [twRoll(), twRoll()], L = TWE.diceList(d[0], d[1]); const sq = TWE.choose(TG.s, 1, L, d, 'normal'); return {dice: d, moves: sq.map(m => TS.me === 0 ? {from: m.from, to: m.to, d: m.d, hit: !!m.hit} : twMir(m))}; });
+    const a = TG.pendRec ? (r => { TG.pendRec = null; return r; })(TG.pendRec) : await mgTurn(TS, TS.op, () => null, async () => { const d = [twRoll(), twRoll()], L = TWE.diceList(d[0], d[1]); const sq = TWE.choose(TG.s, 1, L, d, 'normal'); let st = TWE.clone(TG.s); for (const m of sq) st = TWE.apply(st, 1, m); return {dice: d, moves: sq.map(m => TS.me === 0 ? {from: m.from, to: m.to, d: m.d, hit: !!m.hit} : twMir(m)), st: twAbsS(st)}; });
     if (!TG || id !== TW_ID || TG.turnTok !== tk) return;
     if (a && a.offer) {   // he offers: give up the round now?
       const yes = await mgTurn(TS, TS.me, () => twAskMe(a.offer), async () => false);
@@ -6958,6 +6985,7 @@ async function twNetTheirs() {
     await twDelay(650, id);
     }
     for (const m of sameAll ? [] : fm) { if (!TG || TG.turnTok !== tk) return; twDo(twLoc(m)); twRender(); await twDelay(620, id); }
+    if (a && a.st) { const L2 = twLocS(a.st); if (L2) TG.s = L2; twRender(); }   // 8.7.8 the record's board is the board (any drift is gone)
     if (TWE.won(TG.s, 1)) return twGameOver(1);
     if (!(a && a.moves && a.moves.length)) { twToast(`${TG.pl[1].name} ما عنده حركة`); await twDelay(800, id); }
     await twDelay(250, id);
@@ -6994,6 +7022,7 @@ async function twNewGame() {
   twStartTurn([Math.max(a, b), Math.min(a, b)]);
 }
 function twStartTurn(dice) {
+  __tr('start', {dice, by: window.__trace ? (new Error().stack || '').split('\n').slice(2, 5).map(x => x.trim().split(' ')[1]).join('<') : ''});
   TG.turnTok = (TG.turnTok || 0) + 1;   // every turn has its own ticket: a late "end turn" from an older one is ignored
   if (TG.s) TG.s.hp = null;
   if (TG.cur === 0 && TG.offCD) TG.offCD--;
@@ -7002,7 +7031,7 @@ function twStartTurn(dice) {
   if (dice) { TG.blockedLast = false; if (TG.ts) { if (TG.cur === 0) twNetMine(); else { TG.phase = 'roll'; twRender(); return twNetTheirs(); } } return twGotDice(dice); }
   // a checker is hit and the other player's home is fully closed: nothing to roll for, the turn passes by itself
   if (TG.s && TG.s.bar[TG.cur] && [1, 2, 3, 4, 5, 6].every(d => !TWE.one(TG.s, TG.cur, 'bar', d))) {
-    const tk = TG.turnTok, id = TW_ID; TG.phase = 'blocked';
+    const tk = TG.turnTok, id = TW_ID; TG.phase = 'blocked'; __tr('blocked');
     twDelay(TG.blockedLast ? 600 : 0, id).then(() => { if (TG) TG.blockedLast = true; twEndTurn(tk); }).catch(() => {});   // straight to the other player (a pause only if both are stuck)
     return;
   }
@@ -7103,6 +7132,7 @@ async function twBot() {
   } catch (e) {}
 }
 async function twGameOver(w, forced, how) {
+  __tr('over', {w, forced});
   const id = TW_ID;
   if (TG.ts && w === 0 && !forced) twNetSend();   // my winning moves go out first
   twClockStop(); TG.phase = 'over';
@@ -7173,6 +7203,7 @@ function twBotOfferKind() {
 }
 function twAskMe(k) {
   return new Promise(res => modal((s, close) => {
+    const t = setTimeout(() => { if (s.isConnected) { close(); res(false); } }, afkDur(40000));   // 8.7.8 no answer in time = no (the game never waits for ever)
     s.append(h('div', {class: 'twoffer'}, h('img', {src: TG.pl[1].av, alt: ''}), h('b', {}, TG.pl[1].name)),
       h('h3', {style: 'text-align:center;font-size:26px'}, k === 'malas' ? 'تفلش ملص؟' : 'تفلش أوين؟'),
       h('p', {class: 'hint', style: 'text-align:center'}, k === 'malas' ? 'إذا توافق تخسر الجولة بنقطتين.' : 'إذا توافق تخسر الجولة بنقطة وحدة.'),
@@ -7190,6 +7221,8 @@ async function twOffer(k) {
     TG.sendTurn && TG.sendTurn({offer: k});
     ok = await mgTurn(TG.ts, TG.ts.op, () => null, async () => twHopeless(1, k));
     twBusy = false; if (!TG || id !== TW_ID) return;
+    // 8.7.8 my offer never got there (the host had played my turn already): what came is his turn, not an answer
+    if (typeof ok !== 'boolean') { TG.pendRec = ok; TG.sentRec = null; TG.cur = 1; return twStartTurn(); }
     if (!ok) twNetMine();   // he said no: my turn goes on (a new record)
   } else {
   await twDelay(1500, id).catch(() => {});
@@ -9747,7 +9780,7 @@ window.__kh = () => KG; window.__khStep = () => { if (KG && KG.cur === 0 && KG.e
 // ---------- error log: every error the game hits is kept (last 30) so a report can carry it ----------
 // Master Game's logo (drawn as vector, same design: the M in a purple hexagon with a gold rim and three dots)
 const MG_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#100d22"/><path d="M50 13 L82 31.5 L82 68.5 L50 87 L18 68.5 L18 31.5 Z" fill="#2a1c6b" stroke="#fec42e" stroke-width="3.4" stroke-linejoin="round"/><path d="M50 24 L73 37 L73 63 L50 76 L27 63 L27 37 Z" fill="#6c3cec"/><path d="M38 59 V40 L50 52 L62 40 V59" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="43" cy="66" r="2.6" fill="#fff"/><circle cx="50" cy="66" r="3" fill="#fec42e"/><circle cx="57" cy="66" r="2.6" fill="#fff"/></svg>`);
-const APP_VERSION = '8.7.7';
+const APP_VERSION = '8.7.8';
 const ERRKEY = 'kashta_errlog';
 const errLog = () => { try { return JSON.parse(localStorage.getItem(ERRKEY) || '[]'); } catch (e) { return []; } };
 function logError(kind, msg, stack) {
@@ -13513,20 +13546,23 @@ class NetG {
   pump() {   // what came in the log is applied in its order, and only while the game waits for a turn
     while (this.waiting && this.L[this.p] !== undefined) {
       const x = this.L[this.p]; this.p++;
-      if (x.t === 'a') { const sp = this.S && this.S.pl[x.i]; if (sp && this.order[x.i] && !String(this.order[x.i]).startsWith('bot:')) sp.auto = !!x.b;   // 8.6.8 the device played this seat for its player (shown on his picture)
+      if (x.t === 'a') { __tr('log', {i: x.i, k: x.a && Object.keys(x.a).join(','), b: x.b, no: this.no}); const sp = this.S && this.S.pl[x.i]; if (sp && this.order[x.i] && !String(this.order[x.i]).startsWith('bot:')) sp.auto = !!x.b;   // 8.6.8 the device played this seat for its player (shown on his picture)
         const w = this.waiting; if (x.i !== w.i) { console.warn('net: turn mismatch', x, w); continue; } this.waiting = null; this.no++; w.res(x.a); return; }
       if (x.t === 'e') this.ev(x);
     }
   }
   ev(x) {
     const S = this.S;
+    if (x.e && x.e.sys === 'back') { const p = S.pl[x.e.i]; if (p && p.left) { p.remote = true; p.left = false; p.auto = false; (S.say || mgSay)(`${p.name} رجع 👋 يكمّل هو`, 2000); } return; }   // 8.7.8 back after a cut: he plays again (no more device in his seat)
     if (x.e && x.e.sys === 'bot') { const p = S.pl[x.e.i]; if (p && p.remote) { p.remote = false; p.left = true; (S.say || mgSay)(`${p.name} طلع، يكمّل مكانه الجهاز 🤖`, 2000); } if (this.host && this.expect && this.expect.i === x.e.i) this.botFor(this.expect); return; }
     try { S.onEv && S.onEv(x.i, x.e); } catch (e) { console.error('net ev', e); }
   }
   seats(seats) {   // the host sees a friend gone: the device plays his seat
     if (!this.host || !this.S) return;
     this.order.forEach((u, i) => { const p = this.S.pl[i]; if (p && p.remote && !p.goneSent && !p.goneT && seats[u] && seats[u].on === false)
-      p.goneT = setTimeout(() => { p.goneT = null; const x = this.R.room && this.R.room.seats && this.R.room.seats[u]; if (!this.dead() && p.remote && !p.goneSent && (!x || x.on === false)) { p.goneSent = true; this.append({t: 'e', i: 0, e: {sys: 'bot', i}}); } }, 10000); });
+      p.goneT = setTimeout(() => { p.goneT = null; const x = this.R.room && this.R.room.seats && this.R.room.seats[u]; if (!this.dead() && p.remote && !p.goneSent && (!x || x.on === false)) { p.goneSent = true; this.append({t: 'e', i: 0, e: {sys: 'bot', i}}); } }, 15000); });
+    // 8.7.8 he is back online: his seat is his again
+    this.order.forEach((u, i) => { const p = this.S.pl[i]; if (p && p.goneSent && p.left && seats[u] && seats[u].on !== false && !p.backSent) { p.backSent = true; setTimeout(() => { p.backSent = false; const x = this.R.room && this.R.room.seats && this.R.room.seats[u]; if (!this.dead() && p.left && x && x.on !== false) { p.goneSent = false; this.append({t: 'e', i: 0, e: {sys: 'back', i}}); } }, 2500); } });
   }
   async botFor(ex) { if (ex.botRun) return; ex.botRun = true; const a = await ex.bot(); if (!this.dead()) this.hostAct(ex.i, ex.no, a, ex.away); }
 }
@@ -13539,7 +13575,9 @@ function mgTurn(S, i, human, bot) {
   N.chain = p.catch(() => {});
   return p;
 }
+window.__tr = (n, x) => { if (!window.__trace) return; const T = typeof TG !== 'undefined' && TG; (window.__TR = window.__TR || []).push((Date.now() % 100000) + ' ' + n + ' ' + JSON.stringify(x === undefined ? '' : x) + (T ? ` cur${T.cur} ph${T.phase} tk${T.turnTok} st${T.s ? T.s.bar.join('/') + ':' + T.s.off.join('/') : ''}` : '')); if (window.__TR.length > 300) window.__TR.shift(); };
 function mgTurn1(S, N, i, human, bot) {
+  __tr('turn', {i, no: N.no});
   if (N.dead()) return new Promise(() => {});
   const no = N.no;
   S.vclk = i === S.me ? null : {i, start: Date.now(), dur: 40000};   // 8.6.9 the others' frame on whoever plays
@@ -13995,20 +14033,20 @@ function mgStk(S, a, i) {   // over a seat of the new games (mine above my pictu
 window.__mgStk = i => mgStk(MGS, MGS.me, i);
 
 // ---------- 8.6.4 invite a friend to my room (no code): it pops up on his phone ----------
-function rsInviteSheet(code, g) {
+function rsInviteSheet(code, g, club) {
   rsStart();
-  const gname = (GAMES.find(x => x.k === g) || {name: g}).name;
+  const gname = club ? `نادي ${club}` : (GAMES.find(x => x.k === g) || {name: g}).name;
   modal((s, close) => {
     const sent = {};
     const draw = () => {
       if (s._drawn && !s.isConnected) return; s._drawn = true; s.innerHTML = '';
       const F = Object.entries(RS.fr || {}).sort((a, b) => (rsOnline(b[0]) ? 1 : 0) - (rsOnline(a[0]) ? 1 : 0));
-      s.append(h('h3', {style: 'text-align:center'}, '👥 ادعو صديق'), h('p', {class: 'hint', style: 'text-align:center'}, `يوصله على تلفونه ويدخل ${gname} بضغطة`),
+      s.append(h('h3', {style: 'text-align:center'}, club ? '📨 ادعو أصدقائك للنادي' : '👥 ادعو صديق'), h('p', {class: 'hint', style: 'text-align:center'}, club ? `يوصله على تلفونه وينضم لـ${gname} بضغطة` : `يوصله على تلفونه ويدخل ${gname} بضغطة`),
         h('div', {class: 'frlist'}, F.length ? F.map(([u, x]) => h('div', {class: 'fr'}, h('span', {class: 'fp'}, h('img', {src: x.av || avatarURL('m', 1), alt: ''}), h('i', {class: rsOnline(u) ? 'on' : ''})),
           h('div', {}, h('b', {}, x.n), h('small', {}, rsOnline(u) ? '🟢 متصل' : '⚪ مو متصل (توصله من يفتح اللعبة)')),
           h('button', {type: 'button', class: 'btn ' + (sent[u] ? '' : 'primary'), disabled: !!sent[u], onclick: async () => {
             sent[u] = 1; draw();
-            try { await FBX.push(fbr(`${HUB}/inv/${u}`), {from: FB.uid, n: PROFILE.name || 'لاعب', av: rcSmallAv(), code, g, gname, at: Date.now()}); toast(`انرسلت الدعوة لـ${x.n} ✅`); } catch (e) { sent[u] = 0; draw(); toast('ما وصلت، جرّب مرة ثانية'); }
+            try { await FBX.push(fbr(`${HUB}/inv/${u}`), club ? {from: FB.uid, n: PROFILE.name || 'لاعب', av: rcSmallAv(), club: code, cname: club, at: Date.now()} : {from: FB.uid, n: PROFILE.name || 'لاعب', av: rcSmallAv(), code, g, gname, at: Date.now()}); toast(`انرسلت الدعوة لـ${x.n} ✅`); } catch (e) { sent[u] = 0; draw(); toast('ما وصلت، جرّب مرة ثانية'); }
           }}, sent[u] ? '✓ انرسلت' : 'ادعو'))) : h('p', {class: 'hint'}, 'ماكو أصدقاء بعد. اضغط على صورة أي لاعب حقيقي وأضفه، أو دز الكود بالواتساب.')),
         h('button', {type: 'button', class: 'btn', onclick: () => { RS.redraw = null; close(); }}, 'رجوع'));
     };
@@ -14024,6 +14062,15 @@ async function rsInvited(key, x) {
     notify(`🏆 ${x.n} فتح ${x.gname} بالنادي: سجّل من النادي ⚙️ ← 🏆`, '🏆', 'clubs');
     if (!inGame()) modal((s, close) => s.append(h('div', {class: 'rprof'}, h('b', {}, `🏆 ${x.gname}`), h('small', {}, `${x.n} فتح دوري بالنادي، التسجيل مفتوح`)),
       h('div', {class: 'btnrow', style: 'justify-content:center'}, h('button', {type: 'button', class: 'btn gold', onclick: () => { close(); rcLeague(); }}, '🏆 شوف الدوري'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, 'بعدين'))));
+    return;
+  }
+  if (x && x.club) {   // 8.7.8 a friend invites me to his club
+    FBX.remove(ref); if (Date.now() - (x.at || 0) > 48 * 3600e3 || PROFILE.rclub === x.club) return;
+    if (inGame()) { RS.pend = [key, Object.assign({}, x, {at: Date.now()})]; return; }
+    try { SFX.play('chk', .6); } catch (e) {}
+    modal((s, close) => s.append(h('div', {class: 'rprof'}, h('img', {src: x.av || avatarURL('m', 1), alt: ''}), h('b', {}, x.n), h('small', {}, `يدعوك تنضم لنادي ${x.cname || ''} 🏰`)),
+      PROFILE.rclub ? h('p', {class: 'hint', style: 'text-align:center'}, 'انت بنادي هسه: اطلع منه أول (إعدادات النادي) وبعدين انضم.') : '',
+      h('div', {class: 'btnrow', style: 'justify-content:center'}, PROFILE.rclub ? '' : h('button', {type: 'button', class: 'btn gold', onclick: () => { close(); rcJoin(x.club); }}, 'انضم 🏰'), h('button', {type: 'button', class: 'btn', onclick: () => close()}, PROFILE.rclub ? 'تمام' : 'لا شكراً'))));
     return;
   }
   if (!x || !x.code || Date.now() - (x.at || 0) > 6 * 3600e3) { FBX.remove(ref); return; }
@@ -14107,6 +14154,7 @@ function rcSettings(tab0) {
         h('b', {class: 'pos'}, ['🥇', '🥈', '🥉'][k] || k + 1), h('img', {src: m.av || avatarURL('m', 1), alt: ''}), h('span', {}, u === FB.uid ? 'انت' : m.n), h('b', {class: 'pts'}, (m.xp || 0).toLocaleString('en'))))));
       if (tab === 'rules') body.append(h('ol', {class: 'clubrules'}, (d.rules ? String(d.rules).split('\n').filter(Boolean) : CLUB_RULES).map(x => h('li', {}, x))), adm ? h('p', {class: 'hint'}, 'تكدر تعدّل التعليمات من تبويب الإعدادات.') : '');
       if (tab === 'mem') {
+        body.append(h('button', {type: 'button', class: 'btn gold', style: 'width:100%;margin-bottom:8px', onclick: () => rsInviteSheet(code, 'club', d.name)}, '📨 ادعو أصدقائك للنادي'));
         const R = Object.entries(d.req || {});
         if (adm && R.length) body.append(h('div', {class: 'sec'}, `طلبات الانضمام (${R.length})`), ...R.map(([u, x]) => h('div', {class: 'rank'}, h('img', {src: x.av || avatarURL('m', 1), alt: '', onclick: () => rProfile(u, x.n, x.av)}), h('span', {}, x.n),
           h('span', {class: 'mbtns'}, h('button', {type: 'button', class: 'mb ok', onclick: () => rcAccept(u, x)}, 'قبول'), h('button', {type: 'button', class: 'mb no', onclick: () => FBX.remove(fbr(`rooms/${code}/req/${u}`))}, 'رفض')))));
